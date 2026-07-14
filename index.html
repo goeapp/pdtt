@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PdTT v3.07 — Plan de Trabajo · Tablero</title>
+<title>PdTT v3.14 — Plan de Trabajo · Tablero</title>
 
 <!-- DataTables + Buttons -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
@@ -89,6 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .drop-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--amber);margin-bottom:8px;}
 .drop-sub{color:var(--text-muted);font-size:13px;margin-bottom:20px;}
 .btn-primary{background:var(--amber);color:#ffffff;border:none;border-radius:var(--radius);padding:10px 24px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:background .2s;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
 .btn-primary:hover{background:var(--amber-lt);}
 #file-input{display:none;}
 .drop-note{color:var(--text-muted);font-size:12px;}
@@ -260,7 +261,7 @@ table.dataTable.no-footer{border-bottom:1px solid var(--border)!important;}
 .curvas-leg-line{width:22px;height:3px;border-radius:2px;}
 .curvas-leg-line.dashed{background:repeating-linear-gradient(90deg,var(--blue) 0 6px,transparent 6px 10px);}
 /* Resumen horizontal */
-#curvas-resumen{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+#curvas-resumen{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 16px;}
 .crs-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;min-width:130px;position:relative;overflow:hidden;}
 .crs-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
 .crs-card.c-bl::before{background:var(--blue);}
@@ -337,6 +338,27 @@ table.dataTable.no-footer{border-bottom:1px solid var(--border)!important;}
 .tc-delta.neu{background:var(--bg3);color:var(--text-muted);}
 .tc-progress-wrap{margin-top:8px;background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;}
 .tc-progress-bar{height:100%;border-radius:4px;background:var(--amber);transition:width .4s;}
+/* v3.11 — Punto 2: semáforo Real/Previsto para card "% Avance Real"
+   (mismo patrón visual que .kpi-card::before, umbrales 0.95/0.85) */
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0;background:transparent;}
+.tc.green::before{background:var(--green);}
+.tc.yellow::before{background:var(--yellow);}
+.tc.red::before{background:var(--red);}
+/* v3.11 (ajuste, pedido por Ale) — Propuesta A+C: amarillo/rojo llaman más
+   la atención que verde (borde más grueso), y el valor numérico también
+   toma el color del semáforo, no solo el borde superior. */
+.tc.yellow::before,.tc.red::before{height:6px;}
+.tc.green .tc-value{color:var(--green);}
+.tc.yellow .tc-value{color:var(--yellow);}
+.tc.red .tc-value{color:var(--red);}
+/* v3.12 — ícono circular de tendencia (flecha), esquina superior derecha.
+   Rojo=↓ (empeorando), Amarillo=↘ (bien pero riesgo de empeorar), Verde=↑
+   (mejorando). Solo aparece cuando hay semáforo activo (mismo color que
+   ya tiene la card vía .tc.green/.yellow/.red). */
+.tc-trend{position:absolute;top:10px;right:10px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;color:#fff;}
+.tc-trend.green{width:20px;height:20px;font-size:11px;background:var(--green);}
+.tc-trend.yellow{width:22px;height:22px;font-size:12px;background:var(--yellow);}
+.tc-trend.red{width:26px;height:26px;font-size:14px;background:var(--red);}
 .tc-estado{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
 .tc-estado.ni{color:#60a5fa;}
 .tc-estado.ej{color:#4ade80;}
@@ -1085,7 +1107,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   <div class="header-left">
     <div class="brand">PdTT</div>
     <div><div class="brand-sub">Plan de Trabajo · Tablero</div></div>
-    <span class="version-badge">v3.07</span>
+    <span class="version-badge">v3.14</span>
   </div>
   <div id="header-proj">
     <div id="header-proj-name"></div>
@@ -1094,7 +1116,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   <div class="header-right">
     <div id="fecha-medicion-wrap">
       <label for="fecha-medicion">Fecha de Medición</label>
-      <input type="date" id="fecha-medicion" onchange="renderTimeCards(); renderEnvolvente(); renderSituacion(); if(CURVAS.semanas.length) renderCurvaS(); if(avanceDisponible()){ renderKPIs(); renderTabla(); }">
+      <input type="date" id="fecha-medicion" onchange="buildAvanceSemanal(); buildCurvaSData(); renderTimeCards(); renderEnvolvente(); renderSituacion(); if(CURVAS.semanas.length) renderCurvaS(); if(avanceDisponible()){ renderKPIs(); renderTabla(); } renderEDTGraph();">
     </div>
     <button class="btn-header" id="btn-nuevo" onclick="resetApp()">📂 Cargar otro PdT</button>
     <button class="btn-header" id="btn-actualizar-avance" onclick="actualizarAvance()" disabled>🔄 Actualizar</button>
@@ -1173,7 +1195,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
     <!-- SITUACIÓN DE TAREAS -->
     <div id="situacion-block" style="display:none;margin-bottom:28px;"></div>
     <!-- KPI -->
-    <div class="section-title">📊 Indicadores Clave</div>
+    <div class="section-title">ℹ️ Información</div>
     <div id="kpi-grid"></div>
     <!-- RECURSOS SUMMARY (dashboard) -->
     <div class="section-title">👷 Recursos</div>
@@ -1343,15 +1365,20 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
         <!-- Leyenda -->
         <div id="curvas-legend"></div>
 
+        <!-- v3.09 — Punto 6: Resumen horizontal al corte, reubicado ANTES
+             del gráfico (antes estaba después) — pedido por Ale para que
+             las tarjetas queden siempre visibles arriba y el gráfico entre
+             en pantalla sin necesidad de scroll vertical adicional. El
+             render (renderCurvasResumen()) no depende de la posición en el
+             DOM, solo busca el elemento por id. -->
+        <div id="curvas-resumen"></div>
+
         <!-- Gráfico combinado (único canvas) -->
         <div id="curvas-chart-wrap">
           <div id="curvas-canvas-outer">
             <canvas id="curvas-canvas"></canvas>
           </div>
         </div>
-
-        <!-- Resumen horizontal al corte -->
-        <div id="curvas-resumen"></div>
 
       </div>
     </div>
@@ -1531,7 +1558,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 // ═══════════════════════════════════════════════
 // VERSIÓN
 // ═══════════════════════════════════════════════
-const APP_VERSION = 'v3.07';
+const APP_VERSION = 'v3.14';
 
 // ═══════════════════════════════════════════════
 // NAVEGACIÓN POR TABS
@@ -1556,6 +1583,7 @@ function switchTab(id){
     setTimeout(()=>{ if(CURVAS.chartAcum) CURVAS.chartAcum.resize(); },50);
   }
   if(id==='edt'){
+    renderEDTGraph();
     const innerEl = document.getElementById('edt-panzoom-inner');
     if(innerEl) innerEl.style.opacity = '0';
     setTimeout(()=>{
@@ -2272,20 +2300,28 @@ function renderEnvolvente(){
   const realLeft  = lbLeft;
   const realWidth = lbWidth * pctReal / 100;
 
+  // v3.09 — Punto 1 (detalle, complementa el fix de raíz de v3.08): el
+  // track "Prev. Curva S" ya no aparece/desaparece condicionalmente según
+  // mostrarPrevistoCS — eso era justamente lo que se veía como "se inserta
+  // una barra de más" al cargar un plan con avance. Ahora el track, label y
+  // valor están siempre presentes; sin dato disponible (mostrarPrevistoCS
+  // false, incl. LB_PUBLICADA=FALSE) simplemente queda en 0%, igual que
+  // cualquier otro track sin avance cargado. Rename pedido por Ale:
+  // "Prev. Curva S" → "Av. Prev. (S)".
   block.innerHTML = `
     <div class="env-title">Plan vs Línea Base</div>
     <div class="env-body">
       <div class="env-labels">
         <span class="env-label">LB</span>
         <span class="env-label">Av. Temporal</span>
-        ${mostrarPrevistoCS ? '<span class="env-label">Prev. Curva S</span>' : ''}
+        <span class="env-label">Av. Prev. (S)</span>
         <span class="env-label">Av. Real</span>
       </div>
       <div class="env-tracks-wrap">
         <div class="env-tracks">
           <div class="env-track"><div class="env-pill lb"          style="left:${lbLeft}%;width:${lbWidth}%"></div></div>
           <div class="env-track"><div class="env-pill proyectado"  style="left:${proyLeft}%;width:${proyWidth}%"></div></div>
-          ${mostrarPrevistoCS ? `<div class="env-track"><div class="env-pill previsto-cs" style="left:${prevCSLeft}%;width:${prevCSWidth}%"></div></div>` : ''}
+          <div class="env-track"><div class="env-pill previsto-cs" style="left:${prevCSLeft}%;width:${prevCSWidth}%"></div></div>
           <div class="env-track"><div class="env-pill real"        style="left:${realLeft}%;width:${realWidth}%"></div></div>
         </div>
         ${corteHtml}
@@ -2293,7 +2329,7 @@ function renderEnvolvente(){
       <div class="env-valores">
         <span class="env-dias">${lbDias} días</span>
         <span class="env-dias">${pctTemporal.toFixed(1)}%</span>
-        ${mostrarPrevistoCS ? `<span class="env-dias">${pctPrevistoCS.toFixed(1)}%</span>` : ''}
+        <span class="env-dias">${pctPrevistoCS.toFixed(1)}%</span>
         <span class="env-dias">${pctReal.toFixed(1)}%</span>
       </div>
     </div>
@@ -2672,10 +2708,12 @@ function renderKPIs(){
     const filas = calcularDatos();
     const raizAv = filas.find(t => !t.edt.includes('.'));
     const hhEjecutadas = raizAv ? (raizAv.hh_acum || 0) : 0;
-    const pctAvanceReal = raizAv && raizAv.avance_fisico !== null ? Math.round(raizAv.avance_fisico * 100) : 0;
     cards.push({label:'HH Ejecutadas',value:hhEjecutadas?hhEjecutadas.toLocaleString('es-AR'):'—',sub:'Acumulado — S.planAvance',color:'amber'});
-    cards.push({label:'HH Faltantes',value:'🚧',sub:'En construcción',color:''});
-    cards.push({label:'% Avance Real',value:pctAvanceReal+'%',sub:'avance_fisico — S.planAvance',color:'amber'});
+    // v3.11 (ajuste) — se quitan acá "HH Faltantes" (placeholder "En
+    // construcción", nunca llegó a implementarse) y "% Avance Real"
+    // (pedido explícito de Ale con captura — queda redundante/obsoleta:
+    // el dato real de % Avance Real ya vive en la nueva card semaforizada
+    // de renderTimeCards(), Dashboard). pctAvanceReal ya no se usa acá.
   } else {
     const hhReal=r?.actWork||0;
     const pctReal=r?.pct||0;
@@ -2696,9 +2734,9 @@ function renderKPIs(){
     }
   }
 
-  if(hasLB&&r){
-    if(r.bl[lb])cards.push({label:'Fin Línea Base',value:fmtDate(parseDate(r.bl[lb].finish)),sub:'Baseline Finish',color:'amber'});
-  }
+  // v3.09 — Punto 3: se quita la card "Fin Línea Base" (Baseline Finish) del
+  // dashboard, pedido por Ale. El dato de Fin LB sigue disponible en la card
+  // "Plazo" (Inicio LB → Fin LB) de renderTimeCards() y en el resto de la app.
 
   // Card Calendario — diseño especial con 3 métricas
   const p=STATE.project;
@@ -4303,7 +4341,21 @@ function avanceDisponible(){
 // eso acá se reconstruye S.avanceSemanal y se vuelve a llamar
 // buildCurvaSData()/buildHistData() en cada refresco, no solo la primera vez.
 // Costo: O(tareas) + O(cargas) + O(semanas), barato aún con 150+ semanas.
+// v3.10 — HOTFIX #2 (misma sesión): antes, esta función asumía que
+// STATE.rango ya estaba calculado por un renderAll() previo — cierto en
+// v3.07, donde renderAll() SIEMPRE corría antes (sincrónico) de que
+// recargarDatos() resolviera. Con el fix de v3.08, afterParseOKContinuar()
+// ahora espera a habilitarModoAvance() (que llama a esta función) ANTES de
+// su primer renderAll() — así que la primera vez que se entra acá,
+// STATE.rango todavía no existe. buildHistData() lo lee directo
+// (STATE.rango.inicio, sin guarda) y explota con "Cannot read properties
+// of undefined". computeRango() es pura (solo lee STATE.assignments/
+// selectedLB/project, todos ya poblados a esta altura) e idempotente —
+// se llama acá para garantizar que STATE.rango esté fresco sin importar
+// el orden de llamada, sin efecto en los otros 2 call sites que ya la
+// tenían calculada.
 function refrescarPostAvance(){
+  computeRango();
   renderTimeCards();
   renderEnvolvente();
   renderSituacion();
@@ -4319,6 +4371,12 @@ function refrescarPostAvance(){
   // v2.16 — Punto 5: mismo fix que en renderAll() — renderEnvolvente() ya
   // corrió arriba antes de que CURVAS.semanas estuviera lista.
   if(avanceDisponible()) renderEnvolvente();
+  // v3.13 — HOTFIX (detectado por Ale en retest): mismo problema con
+  // renderTimeCards(), que corrió al principio de esta función (antes de
+  // buildAvanceSemanal()/buildCurvaSData()) — las cards "% Avance Real"/
+  // "HH Real" quedaban desactualizadas tras cargar un avance nuevo. Se
+  // repinta acá, con CURVAS.semanas ya fresca.
+  renderTimeCards();
 }
 
 function workingDaysBetween(a, b){
@@ -4338,7 +4396,37 @@ function workingDaysBetween(a, b){
   return count;
 }
 
+// v3.11 — Punto 2/agregado: devuelve la semana de CURVAS.semanas correspondiente
+// al corte (Fecha de Medición), a nivel semanal puro — independiente del toggle
+// de vista (Semanal/4 Semanas) y de unidad (HH/%) del tab Curva S. Misma lógica
+// de corteIdx que usa renderCurvaS() (líneas ~3417-3425), replicada acá porque
+// el Dashboard necesita el dato aunque el usuario nunca haya entrado a Curva S.
+// Devuelve null si no hay semanas construidas o si la Fecha de Medición es
+// anterior al inicio de la LB (corteIdx = -1).
+function getCurvaSCorteSemana(){
+  if(!CURVAS.semanas.length) return null;
+  const fm = getFechaMedicion();
+  fm.setHours(0,0,0,0);
+  let corteIdx = -1;
+  for(let i = 0; i < CURVAS.semanas.length; i++){
+    const lunesSig = new Date(CURVAS.semanas[i].fechaLunes.getTime() + 7*24*3600*1000);
+    if(fm >= CURVAS.semanas[i].fechaLunes && fm < lunesSig){ corteIdx = i; break; }
+    if(fm >= CURVAS.semanas[i].fechaLunes) corteIdx = i;
+  }
+  return corteIdx >= 0 ? CURVAS.semanas[corteIdx] : null;
+}
+
 function deltaClass(d){ return d === 0 ? 'neu' : d > 0 ? 'neg' : 'pos'; }
+
+// v3.12 — mapea el color de semáforo (green/yellow/red/'') al ícono de
+// flecha circular: rojo=↓, amarillo=↘ (riesgo de empeorar), verde=↑.
+// Devuelve '' (sin ícono) si no hay color de semáforo activo.
+function trendIcon(color){
+  if(color === 'green') return `<div class="tc-trend green">↑</div>`;
+  if(color === 'yellow') return `<div class="tc-trend yellow">↘</div>`;
+  if(color === 'red') return `<div class="tc-trend red">↓</div>`;
+  return '';
+}
 function deltaLabel(d, unit='d'){
   if(d === null || d === undefined) return '';
   const sign = d > 0 ? '+' : '';
@@ -4462,18 +4550,40 @@ function renderTimeCards(){
     return `<div class="tc-lb"><span class="tc-lb-val">LB: ${lbVal}</span>${dl}</div>`;
   }
 
+  // v3.11 — Punto 2/agregado: dato de corte de Curva S (Avance Real ponderado
+  // vs Av. Prev.(S)), reusado acá para "% Avance Real" y "Real al Corte".
+  // hasReal: hay al menos una semana con HH reales cargadas (mismo criterio
+  // que usa renderCurvaS() para decidir si dibuja la serie Real).
+  const semCorte = getCurvaSCorteSemana();
+  const hasReal  = CURVAS.semanas.some(s => s.real > 0);
+  let pctRealAcum = null, pctPrevSAcum = null, ratioRP = null, ratioColor = '';
+  let hhRealAcum = null, hhDeltaVsLB = null;
+  if(semCorte && hasReal){
+    pctRealAcum = semCorte.pctFisicoAcum;
+    pctPrevSAcum = semCorte.pctBLAcum;
+    hhRealAcum = semCorte.realAcum;
+    hhDeltaVsLB = semCorte.realAcum - semCorte.blAcum;
+    // Caso "Av. Prev. (S)" = 0 (teóricamente solo el día 1 de LB, acordado con
+    // Ale que no requiere manejo especial): sin división, la card queda sin
+    // color de semáforo (ratioColor se mantiene '').
+    if(pctPrevSAcum > 0){
+      ratioRP = pctRealAcum / pctPrevSAcum;
+      ratioColor = ratioRP >= 0.95 ? 'green' : ratioRP >= 0.85 ? 'yellow' : 'red';
+    }
+  }
+  // Semáforo de "Real al Corte" (HH): lógica ya existente en Curva S
+  // (deltaHtml() de renderCurvasResumen(), invert=false) — HH real de más
+  // que lo previsto en LB = rojo ('neg'), de menos = verde ('pos'). No es
+  // el mismo semáforo/umbral que el de "% Avance Real": son dos indicadores
+  // distintos, cada uno con su propia lógica ya acordada.
+  const hhDeltaCls = hhDeltaVsLB === null ? 'neu' : hhDeltaVsLB === 0 ? 'neu' : hhDeltaVsLB > 0 ? 'neg' : 'pos';
+  const hhDeltaTxt = hhDeltaVsLB === null ? '' :
+    (hhDeltaVsLB > 0 ? '+' : '') + Math.round(hhDeltaVsLB).toLocaleString('es-AR') + ' HH';
+
   // ── Construir cards ──
   const cards = [];
 
-  // Card 1 — Duración (v2.01: sin comparación LB, Plan≈LB siempre)
-  cards.push(`
-    <div class="tc">
-      <div class="tc-label">Duración</div>
-      <div class="tc-value">${planDur !== null ? planDur+'d' : '—'}</div>
-      <div class="tc-sub">${planSems !== null ? planSems+' semanas de obra' : ''}</div>
-    </div>`);
-
-  // Card 2 — Estado
+  // Card 1 — Estado
   cards.push(`
     <div class="tc">
       <div class="tc-label">Estado</div>
@@ -4488,7 +4598,7 @@ function renderTimeCards(){
       <div class="tc-sub" style="margin-top:2px">${ultimaCargaTxt}${desvioCargaHtml}</div>
     </div>`);
 
-  // Card 3 — PLAZO (v2.01: reemplaza "Fin de Obra" — Inicio/Fin LB + Inicio Real)
+  // Card 2 — PLAZO (v2.01: reemplaza "Fin de Obra" — Inicio/Fin LB + Inicio Real)
   cards.push(`
     <div class="tc">
       <div class="tc-label">Plazo</div>
@@ -4497,21 +4607,41 @@ function renderTimeCards(){
       ${inicioReal !== null ? `<div class="tc-lb"><span class="tc-lb-val">Inicio Real: ${inicioReal}</span></div>` : (avanceDisponible() ? '<div class="tc-lb"><span class="tc-lb-val">Inicio Real: sin avance cargado</span></div>' : '')}
     </div>`);
 
-  // Card 4 — Días corridos / restantes (v2.01: sin comparación LB)
+  // Card 3 — Días corridos / restantes + Duración (v3.11: absorbe la ex-Card 1
+  // "Duración", que se elimina como card independiente — acordado con Ale)
   cards.push(`
     <div class="tc">
       <div class="tc-label">Días Corridos / Restantes</div>
       <div class="tc-value">${diasCorridos !== null && diasCorridos >= 0 ? diasCorridos+'d' : '—'} <span style="font-size:14px;color:var(--text-muted)">/ ${diasRestantes !== null && diasRestantes >= 0 ? diasRestantes+'d' : '—'}</span></div>
       <div class="tc-sub">Hábiles corridos / restantes (Plan)</div>
+      <div class="tc-sub" style="margin-top:4px">Duración: <strong>${planDur !== null ? planDur+'d' : '—'}</strong>${planSems !== null ? ' / '+planSems+' sem' : ''}</div>
     </div>`);
 
-  // Card 5 — % Tiempo + semana actual (v2.01: sin comparación LB)
+  // Card 4 — % Avance Real (v3.11 Punto 2: reemplaza "Avance Temporal").
+  // Semáforo por ratio Real/Previsto(S), mismos umbrales que CPI/SPI.
   cards.push(`
-    <div class="tc">
-      <div class="tc-label">Avance Temporal</div>
-      <div class="tc-value">${pct}%</div>
-      ${semActual !== null ? `<div class="tc-sub">Semana de obra: <strong>S${semActual}</strong></div>` : '<div class="tc-sub">—</div>'}
-      <div class="tc-progress-wrap"><div class="tc-progress-bar" style="width:${pct}%"></div></div>
+    <div class="tc ${ratioColor}">
+      ${trendIcon(ratioColor)}
+      <div class="tc-label">% Avance Real</div>
+      <div class="tc-value">${hasReal ? pctRealAcum.toFixed(1)+'%' : '—'}</div>
+      <div class="tc-sub">${hasReal ? 'vs Av. Prev. (S): '+pctPrevSAcum.toFixed(1)+'%' : 'Sin avance cargado'}</div>
+    </div>`);
+
+  // Card 5 — HH Real (v3.11 ajuste: renombrada desde "Real al Corte" —
+  // migrada de Curva S/"Real al corte", re-styling al lenguaje visual .tc).
+  // Se saca el subtítulo "Avance Físico: X%" (redundante con la card
+  // "% Avance Real" de al lado). Semáforo de borde superior binario:
+  // rojo si se gastaron más HH que las previstas en LB al corte, verde si
+  // se gastaron menos (sin franja amarilla intermedia — no pedida para
+  // este indicador). Mismo pill de desvío en HH que ya existía.
+  const hhColor = hhDeltaVsLB === null || hhDeltaVsLB === 0 ? '' : hhDeltaVsLB > 0 ? 'red' : 'green';
+  cards.push(`
+    <div class="tc ${hasReal ? hhColor : ''}">
+      ${hasReal ? trendIcon(hhColor) : ''}
+      <div class="tc-label">HH Real</div>
+      <div class="tc-value">${hasReal ? hhRealAcum.toLocaleString('es-AR',{maximumFractionDigits:0})+' HH' : '—'}</div>
+      ${!hasReal ? '<div class="tc-sub">Sin avance cargado</div>' : ''}
+      ${hasReal ? `<div class="tc-delta ${hhDeltaCls}" style="margin-top:4px;width:fit-content">${hhDeltaTxt}</div>` : ''}
     </div>`);
 
   wrap.innerHTML = cards.join('');
@@ -4920,6 +5050,12 @@ function renderAll(){
   // CURVAS.semanas estuviera construida — la 4ta barra "Prev. Curva S"
   // pintaba vacía en el primer render. Se repinta acá, con Curva S ya lista.
   if(avanceDisponible()) renderEnvolvente();
+  // v3.13 — HOTFIX (mismo patrón que arriba, detectado por Ale en retest):
+  // renderTimeCards() también corrió antes de que CURVAS.semanas existiera
+  // (línea ~4998) — las cards "% Avance Real"/"HH Real" (v3.11) leen de ahí
+  // vía getCurvaSCorteSemana(), así que quedaban con datos viejos/vacíos en
+  // el primer render. Se repinta acá, después de buildCurvaSData().
+  renderTimeCards();
 }
 
 // ═══════════════════════════════════════════════
@@ -5067,7 +5203,7 @@ function afterParseOK(){
 // v3.00 — cuerpo original de afterParseOK(), extraído para poder correr
 // recién después de que termine el gate DCMA (cuando corresponde). Sin
 // cambios de lógica respecto a versiones anteriores.
-function afterParseOKContinuar(){
+async function afterParseOKContinuar(){
   buildDiag();
   document.getElementById('drop-zone').style.display='none';
   document.getElementById('content').style.display='block';
@@ -5089,7 +5225,17 @@ function afterParseOKContinuar(){
   // pero con S.plan/S.avance vacíos hasta el próximo F5.
   const lbPublicadaFlag = APP.obraProyecto && (String(APP.obraProyecto.lb_publicada).toUpperCase()==='TRUE'||APP.obraProyecto.lb_publicada===true);
   if(lbPublicadaFlag){
-    habilitarModoAvance();
+    // v3.08 — Fix de raíz: antes habilitarModoAvance() era fire-and-forget
+    // y renderAll() corría a continuación con APP.lbPublicada ya en true
+    // pero S.plan/S.avance todavía vacíos (avanceDisponible()===false) —
+    // ese primer renderAll() pintaba en modo XML directo (Envolvente con
+    // solo 3 barras, Situación/Críticas contra Fin Plan) y recién se
+    // corregía cuando refrescarPostAvance() corría más tarde. Ahora se
+    // espera con el overlay de bloqueo ya existente en la app — el usuario
+    // ve "Cargando..." en vez de un dashboard con datos parciales.
+    showBlockOverlay('Cargando datos de avance...', APP.obraSelected ? `${APP.obraSelected.obra} — ${APP.obraSelected.nombre}` : '');
+    await habilitarModoAvance(); // v3.10 — ya no recibe skipRefresh, ver comentario en la función
+    hideBlockOverlay();
   }else{
     APP.lbPublicada = false; // v2.01 — gate único: Dashboard en modo Avance vs modo XML directo
     const btnAvance = document.getElementById('tab-btn-avance');
@@ -5103,6 +5249,20 @@ function afterParseOKContinuar(){
     // LB publicada. Ya no hace falta reponerlo acá.
   }
   renderAll();
+  // v3.10 — HOTFIX #3: con el fix de v3.08, en este flujo (LB publicada)
+  // habilitarModoAvance() -y su actualizarFechaMedicionDefault() interno-
+  // corren ANTES de este renderAll(). Pero renderAll() llama a
+  // initFechaMedicion(), que siempre resetea el input de Fecha de Medición
+  // a HOY — pisando el default correcto (última carga de avance, o Inicio
+  // LB) que ya se había calculado. En v3.07 el orden era al revés
+  // (renderAll() corría primero de forma síncrona, la corrección async
+  // llegaba después) — acá se repone esa corrección explícitamente, con un
+  // refrescarPostAvance() liviano (no otro renderAll(), para no volver a
+  // llamar a initFechaMedicion() y entrar en loop).
+  if(lbPublicadaFlag){
+    actualizarFechaMedicionDefault();
+    refrescarPostAvance();
+  }
   // v3.05 — el modal Diagnóstico solo se auto-abre en modo XML directo
   // (carga puntual, un usuario). En modo Avance (lbPublicadaFlag) la app
   // la abren múltiples usuarios en modo lectura, de forma recurrente
@@ -5117,7 +5277,32 @@ function afterParseOKContinuar(){
 // de datos reales. Se llama desde afterParseOK() (LB ya publicada al cargar
 // el XML) y desde publicarLB() al terminar con éxito (LB recién publicada
 // en esta misma sesión) — mismo efecto final en ambos casos.
-function habilitarModoAvance(){
+// v3.08 — Fix de raíz del parpadeo Avance (puntos 1/4/5 del handoff de
+// mejoras): antes, APP.lbPublicada quedaba en true de forma sincrónica acá
+// mismo, y el/los caller(s) seguían de largo (renderAll() en
+// afterParseOKContinuar(), hideBlockOverlay()+modal en publicarLB()) sin
+// esperar a que recargarDatos() resolviera. Eso dejaba una ventana real en
+// la que avanceDisponible() ya podía evaluar cosas en modo mixto, y sobre
+// todo hacía que el primer renderAll()/refrescarPostAvance() pintara con
+// S.plan/S.avance todavía vacíos (modo XML directo) — de ahí las barras de
+// Plan vs LB que "saltaban", el contador de Vencidas que iba 3→0, etc.
+// Ahora la función es async y NO devuelve el control hasta que
+// refrescarPostAvance() ya corrió con los datos reales — el/los caller(s)
+// deben hacer `await habilitarModoAvance()` y mostrar su propio
+// showBlockOverlay() mientras tanto, en vez de renderizar antes de tiempo.
+// v3.10 — HOTFIX, revierte el parámetro skipRefresh agregado en v3.08.
+// refrescarPostAvance() no es solo "otro render": adentro llama a
+// buildAvanceSemanal(), que es la única función que construye
+// S.avanceSemanal (cargas de Avance agrupadas por semana). buildCurvaSData()
+// y buildHistData() leen S.avanceSemanal.porSemana para las barras/línea
+// "Real" — pero renderAll() NUNCA llama a buildAvanceSemanal(). Al saltear
+// refrescarPostAvance() con skipRefresh=true (llamado desde
+// afterParseOKContinuar()), S.avanceSemanal quedaba vacío y el tab Curva S
+// perdía Real (Período)/Real Acum./card "Real al corte" — reportado por
+// Ale al comparar v3.07 (funcionaba) vs v3.08/v3.09 (roto). Se vuelve a
+// llamar refrescarPostAvance() siempre, sin excepción — el pequeño costo
+// de un render de más al cargar es preferible a repetir este bug.
+async function habilitarModoAvance(){
   APP.lbPublicada = true;
   const btnAvance = document.getElementById('tab-btn-avance');
   if(btnAvance) btnAvance.disabled = false;
@@ -5127,8 +5312,8 @@ function habilitarModoAvance(){
   // v3.05 — revert de v3.04: el tab Calidad ya NO se oculta con LB
   // publicada. El DCMA en vivo (STATE.dcma) sigue existiendo solo en modo
   // XML directo, pero el tab ahora también sabe pintar un reporte
-  // histórico leído de DataCalidad00 en modo Avance (Paso B, próxima
-  // sesión) o un estado vacío si esa obra no tiene reporte guardado.
+  // histórico leído de DataCalidad00 en modo Avance (Paso B) o un estado
+  // vacío si esa obra no tiene reporte guardado.
   if(!APP.obraSelected) return;
   S.obraSelected = APP.obraSelected;
   document.getElementById('lbl-obra-tabla').textContent  = APP.obraSelected.obra;
@@ -5136,19 +5321,22 @@ function habilitarModoAvance(){
   document.getElementById('lbl-obra-cargas').textContent = APP.obraSelected.obra;
   const elGen = document.getElementById('estado-general');
   if(elGen) elGen.innerHTML = estadoHTML('loading', `Cargando datos de avance de ${APP.obraSelected.obra}...`);
-  // v2.01 — recargarDatos() es async y renderAll() ya corrió (o el modal de
-  // publicación ya se mostró) antes de que resuelva; sin este segundo render,
-  // el Dashboard queda pintado con S.plan/S.avance vacíos (PLAZO sin Inicio
-  // Real, KPIs en —, Situación de Tareas vacía) hasta el próximo evento que
-  // dispare un render. Se vuelve a pintar la porción del Dashboard que
-  // depende de Avance apenas los datos llegan.
-  recargarDatos().then(()=>{
-    if(elGen) elGen.innerHTML='';
-    // v2.22 — recalcular el default de Fecha de Medición ahora que S.avance
-    // ya está poblado (ver comentario en actualizarFechaMedicionDefault()).
-    actualizarFechaMedicionDefault();
-    refrescarPostAvance();
-  });
+  // v3.08 — antes: recargarDatos().then(...) fire-and-forget. Ahora: await
+  // directo, la función no vuelve hasta terminar el refresco completo.
+  await recargarDatos();
+  if(elGen) elGen.innerHTML='';
+  // v3.10 — HOTFIX #2: computeRango() acá también, ANTES de
+  // actualizarFechaMedicionDefault(). Esa función tiene un fallback (obra
+  // con LB publicada pero sin cargas de Avance todavía) que lee
+  // STATE.rango.lbStart — con el flujo de v3.08 (await antes del primer
+  // renderAll()), STATE.rango podía no existir todavía en ese momento.
+  // computeRango() es pura e idempotente (ver definición), segura de
+  // llamar acá aunque refrescarPostAvance() la vuelva a llamar enseguida.
+  computeRango();
+  // v2.22 — recalcular el default de Fecha de Medición ahora que S.avance
+  // ya está poblado (ver comentario en actualizarFechaMedicionDefault()).
+  actualizarFechaMedicionDefault();
+  refrescarPostAvance();
 }
 
 // ⚠ MODO TESTING v1.01 — parseXLSXSheet()
@@ -6289,6 +6477,12 @@ async function seleccionarObra(id_sheet){
   const el = document.getElementById('obras-container');
   const prevHtml = el.innerHTML;
   el.insertAdjacentHTML('beforeend', `<div class="obras-status-overlay">Consultando estado de la obra...</div>`); // v2.26 — overlay absoluto, no empuja el botón Chequear Plan
+  // v3.08 — Punto 5: "Chequear Plan" quedaba clickeable durante este fetch
+  // (getProyecto), pudiendo pisar el flujo de selección de obra en curso.
+  // Se deshabilita acá y se repone solo en el catch — en el camino feliz
+  // toda la pantalla obra-screen (con el botón adentro) queda oculta.
+  const btnChequear = document.getElementById('btn-chequear-plan');
+  if(btnChequear) btnChequear.disabled = true;
 
   let proy;
   try{
@@ -6298,6 +6492,7 @@ async function seleccionarObra(id_sheet){
   }catch(err){
     el.innerHTML = prevHtml;
     el.insertAdjacentHTML('beforeend', `<div class="obras-status-overlay err">Error al consultar la obra: ${err.message}</div>`); // v2.26 — idem, mismo overlay
+    if(btnChequear) btnChequear.disabled = false;
     APP.obraSelected = null;
     return;
   }
@@ -6521,7 +6716,14 @@ async function publicarLB(confirmarSobrescritura){
     // sin cargar los datos reales — el tab Avance aparecía clickeable pero
     // vacío hasta el próximo F5. habilitarModoAvance() hace lo mismo que ya
     // hace afterParseOK() cuando la obra ya venía con LB publicada.
-    habilitarModoAvance();
+    // v3.08 — antes era fire-and-forget: hideBlockOverlay() y el modal de
+    // éxito se disparaban antes de que recargarDatos() resolviera, dejando
+    // el Dashboard de fondo pintado en modo XML directo hasta que
+    // refrescarPostAvance() corría por su cuenta un instante después. Ahora
+    // se espera a que termine (refrescarPostAvance() interno incluido,
+    // ver v3.10 en la definición de habilitarModoAvance()).
+    showBlockOverlay('Publicando Línea Base...', 'Cargando datos de avance...');
+    await habilitarModoAvance();
     hideBlockOverlay();
     openAppModal({
       titulo: '✅ LB publicada con éxito',
