@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PdTT v3.14 — Plan de Trabajo · Tablero</title>
+<title>PdTT v3.20 — Plan de Trabajo · Tablero</title>
 
 <!-- DataTables + Buttons -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
@@ -1037,7 +1037,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   overflow:hidden;
 }
 .dcma-check-head{
-  display:grid; grid-template-columns:28px 1fr 130px 90px 70px 60px 24px;
+  display:grid; grid-template-columns:28px 1fr 90px 70px 60px 24px;
   align-items:center; gap:10px; padding:12px 14px; cursor:pointer;
   user-select:none;
 }
@@ -1048,7 +1048,6 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 .dcma-dot.dcma-red{background:var(--red);}
 .dcma-c-name{font-size:13.5px; font-weight:600; color:var(--text);}
 .dcma-c-name small{display:block; font-weight:400; color:var(--text-muted); font-size:11px; margin-top:2px;}
-.dcma-c-value{font-size:13px; color:var(--text); text-align:right;}
 .dcma-c-thresh{font-size:11px; color:var(--text-muted); text-align:right;}
 .dcma-c-weight{font-size:12px; color:var(--text-muted); text-align:right;}
 .dcma-c-pts{font-size:13px; font-weight:700; text-align:right; color:var(--text);}
@@ -1069,6 +1068,14 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   border:1px solid var(--amber); background:#fef3c7; border-radius:5px;
   padding:2px 7px; margin-bottom:10px;
 }
+.dcma-check-accion{
+  font-size:12px; color:var(--text); line-height:1.5;
+  background:var(--bg3); border-left:3px solid var(--amber);
+  border-radius:4px; padding:8px 10px; margin-top:2px;
+}
+/* v3.16 — .dcma-task-list ya no se usa (el detalle de offenders salió del
+   panel en pantalla, ver renderDCMA()). Se deja el CSS sin borrar por si
+   hace falta revertir; limpiar en v3.18 si se confirma que no vuelve. */
 .dcma-task-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;}
 .dcma-task-list li{
   font-size:12px; color:var(--text); padding:4px 8px;
@@ -1085,7 +1092,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 .dcma-legend .dcma-dot{display:inline-block;}
 #panel-calidad footer{margin-top:24px; font-size:11px; color:var(--text-muted); text-align:center;}
 .dcma-head-cols{
-  display:grid; grid-template-columns:28px 1fr 130px 90px 70px 60px 24px;
+  display:grid; grid-template-columns:28px 1fr 90px 70px 60px 24px;
   gap:10px; padding:0 14px 6px; font-size:10.5px; color:var(--text-muted);
   text-transform:uppercase; letter-spacing:.04em;
 }
@@ -1107,7 +1114,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   <div class="header-left">
     <div class="brand">PdTT</div>
     <div><div class="brand-sub">Plan de Trabajo · Tablero</div></div>
-    <span class="version-badge">v3.14</span>
+    <span class="version-badge">v3.20</span>
   </div>
   <div id="header-proj">
     <div id="header-proj-name"></div>
@@ -1321,8 +1328,13 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
     </div>
 
     <!-- EDT TABLA -->
-    <div class="section-title">📋 EDT — Detalle</div>
-    <div class="section-block">
+    <!-- v3.15 — Punto 1: oculta a pedido de Ale. Filtros (setFilter/setLevelFilter)
+         rotos, tabla quedó colgada de una etapa anterior y su contenido se
+         solapa con GANTT (críticas, avance) y Curva S. No se borra el JS de
+         renderEDT() ni los filtros — queda pendiente sin fecha evaluar si se
+         recupera con fix o se descarta directamente (ver handoff v3.15). -->
+    <div class="section-title" style="display:none;">📋 EDT — Detalle</div>
+    <div class="section-block" style="display:none;">
       <div id="edt-filters">
         <span style="font-size:11px;color:var(--text-muted);margin-right:4px">Filtrar:</span>
         <button class="filter-btn active" onclick="setFilter('all',this)">Todas</button>
@@ -1494,12 +1506,16 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
           <div class="dcma-verdict" id="dcma-verdictText">Calculando...</div>
           <div class="dcma-desc" id="dcma-verdictDesc"></div>
         </div>
+        <!-- v3.18 — Punto 4: export XLSX. Oculto por defecto — renderDCMA()
+             lo muestra solo si !ctx.historico (no hay detalle de offenders
+             guardado en el reporte histórico, ver dcmaCtxDesdeHistorico()). -->
+        <button class="btn-primary" id="btn-dcma-export" style="display:none;flex-shrink:0;padding:10px 18px;font-size:13px;" onclick="buildDcmaXlsx(STATE.dcma)">⬇ Exportar XLSX</button>
       </div>
 
       <div class="dcma-stats-row" id="dcma-statsRow"></div>
 
       <div class="dcma-head-cols">
-        <span></span><span>Check</span><span style="text-align:right">Valor</span>
+        <span></span><span>Check</span>
         <span style="text-align:right">Umbral</span><span style="text-align:right">Peso</span>
         <span style="text-align:right">Pts</span><span></span>
       </div>
@@ -1558,7 +1574,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 // ═══════════════════════════════════════════════
 // VERSIÓN
 // ═══════════════════════════════════════════════
-const APP_VERSION = 'v3.14';
+const APP_VERSION = 'v3.20';
 
 // ═══════════════════════════════════════════════
 // NAVEGACIÓN POR TABS
@@ -1890,8 +1906,14 @@ function buildDiag(){
   // ── Recursos HHD ──
   const recHHD=STATE.resources.filter(r=>r.recType==='hhd');
   const recConTasa=recHHD.filter(r=>r.hasRate);
-  const assignNombrados=STATE.assignments.filter(a=>a.resUID!=='-65535');
-  const assignGenericos=STATE.assignments.filter(a=>a.resUID==='-65535');
+  // v3.15 — Punto 3: antes filtraba solo por resUID!=='-65535' ("no genérico"),
+  // lo que contaba recursos Material (ej. metros, anillos, pilotes) como si
+  // fueran recurso de trabajo real. Ahora exige recType==='hhd' — mismo
+  // criterio ya corregido en Curva S (Punto 2). Esto corrige en cascada
+  // tareasConRecNombrado, recEnUso, tareasConTrabajo y pctAsig.
+  const recHHDUids=new Set(recHHD.map(r=>r.uid));
+  const assignNombrados=STATE.assignments.filter(a=>recHHDUids.has(a.resUID));
+  const assignGenericos=STATE.assignments.filter(a=>!recHHDUids.has(a.resUID));
   const tareasConRecNombrado=new Set(assignNombrados.map(a=>a.taskUID));
   const recEnUso=new Set(assignNombrados.map(a=>a.resUID));
   // Filtrar genéricos solo sobre tareas ejecutables (dur>0) — los hitos los ignoran
@@ -1913,20 +1935,21 @@ function buildDiag(){
     }
   }
 
+  // v3.15 — Punto 3: se elimina el bloque "else if" que listaba cada tarea sin
+  // recurso nombrado (quedaba una lista interminable, ej. 1909 tareas
+  // concatenadas en Línea F) — queda redundante con el mensaje de "Trabajo
+  // asignado" de abajo, que ya informa la misma cantidad + porcentaje.
   if(genericosEnEjec.length>0&&assignNombrados.length===0){
-    noDisponible.push('Todo el trabajo está cargado sin recurso nombrado — las tareas tienen horas en el cronograma pero ninguna está atribuida a un recurso de la Hoja de Recursos. La Curva S no puede graficarse.');
-  }else if(genericosEnEjec.length>0){
-    const nomsTareas=[...new Set(genericosEnEjec.map(a=>a.taskUID))].map(uid=>{const t=STATE.tasks.find(t=>t.uid===uid);return t?t.name:'?';}).join(', ');
-    informativo.push(`${genericosEnEjec.length} tarea(s) ejecutable(s) tienen trabajo sin recurso nombrado (horas en cronograma sin atribuir a la Hoja de Recursos): ${nomsTareas}`);
+    noDisponible.push('Todo el trabajo está cargado sin recurso de trabajo (HHD) — las tareas tienen horas en el cronograma pero ninguna está atribuida a un recurso de trabajo de la Hoja de Recursos. La Curva S no puede graficarse.');
   }
 
   if(tareasEjec.length>0){
     if(pctAsig>=80){
-      disponible.push(`Trabajo asignado: ${tareasConTrabajo.length} de ${tareasEjec.length} tareas con recurso nombrado (${pctAsig}%)`);
+      disponible.push(`Trabajo asignado: ${tareasConTrabajo.length} de ${tareasEjec.length} tareas con recurso de trabajo (HHD) (${pctAsig}%)`);
     }else if(pctAsig>0){
-      noDisponible.push(`Trabajo asignado: ${tareasConTrabajo.length} de ${tareasEjec.length} tareas con recurso nombrado (${pctAsig}%)`);
+      noDisponible.push(`Trabajo asignado: ${tareasConTrabajo.length} de ${tareasEjec.length} tareas con recurso de trabajo (HHD) (${pctAsig}%)`);
     }else{
-      noDisponible.push(`Trabajo asignado: ninguna tarea ejecutable tiene recurso nombrado asignado (0 de ${tareasEjec.length})`);
+      noDisponible.push(`Trabajo asignado: ninguna tarea ejecutable tiene recurso de trabajo (HHD) asignado (0 de ${tareasEjec.length})`);
     }
   }
 
@@ -3331,8 +3354,12 @@ function resetCurvasPan(){
 function buildCurvaSData(){
   const p = STATE.project;
   if(!p || !p.start) return false;
-  // Solo graficar si hay al menos una asignación con recurso nombrado (≠ -65535)
-  const hayRecNombrado=STATE.assignments.some(a=>a.resUID!=='-65535'&&a.timephased&&a.timephased.length>0);
+  // v3.15 — Punto 2: antes solo chequeaba resUID!=='-65535' ("no genérico"),
+  // lo que dejaba pasar recursos Material (ej. metros de túnel, anillos,
+  // pilotes) como si fueran trabajo (HH) real — mismo criterio que ya usa
+  // buildHistData() (línea ~3814) para el Histograma. Ahora exige recurso HHD.
+  const hhdResUIDs=new Set(STATE.resources.filter(r=>r.recType==='hhd').map(r=>r.uid));
+  const hayRecNombrado=STATE.assignments.some(a=>hhdResUIDs.has(a.resUID)&&a.timephased&&a.timephased.length>0);
   if(!hayRecNombrado) return false;
 
   const startLunes = mondayOf(STATE.rango.inicio);
@@ -5028,7 +5055,10 @@ function renderAll(){
   const curvasPanel = document.getElementById('curvas-panel');
   const curvasEmpty = document.getElementById('curvas-empty');
   const curvasEmptyMsg = document.getElementById('curvas-empty-msg');
-  const hayRecNombradoTP = STATE.assignments.some(a=>a.resUID!=='-65535'&&a.timephased&&a.timephased.length>0);
+  // v3.15 — Punto 2: mismo fix que buildCurvaSData() (exige recType==='hhd',
+  // no solo "no genérico") para que este chequeo espejo no diverja del real.
+  const hhdResUIDsTP = new Set(STATE.resources.filter(r=>r.recType==='hhd').map(r=>r.uid));
+  const hayRecNombradoTP = STATE.assignments.some(a=>hhdResUIDsTP.has(a.resUID)&&a.timephased&&a.timephased.length>0);
   if(hasTP && hayRecNombradoTP && buildCurvaSData()){
     curvasPanel.style.display = 'block';
     if(curvasEmpty) curvasEmpty.style.display = 'none';
@@ -5206,9 +5236,14 @@ function afterParseOK(){
 async function afterParseOKContinuar(){
   buildDiag();
   document.getElementById('drop-zone').style.display='none';
-  document.getElementById('content').style.display='block';
-  document.getElementById('tab-bar').classList.add('visible');
-  switchTab('dashboard');
+  // v3.20 — Punto detectado por Ale: content/tab-bar/switchTab se movieron
+  // de acá (se ejecutaban ANTES del overlay de "Cargando datos de avance")
+  // a justo antes de renderAll(), más abajo. Antes, el nav y el esqueleto
+  // del Dashboard (secciones "Información"/"Recursos") quedaban al
+  // descubierto durante esa espera, y el overlay traslúcido (rgba .7) no
+  // alcanza a taparlos del todo — se veían "colgados" detrás. Ahora se
+  // destapan todos juntos, con los datos ya adentro. Es un hide/show, sin
+  // tocar nada de la lógica de datos/orden de habilitarModoAvance().
   document.getElementById('btn-nuevo').style.display='flex';
   document.getElementById('btn-diag').style.display='flex';
   // Botón "Publicar" solo tiene sentido si hay una obra seleccionada
@@ -5248,6 +5283,12 @@ async function afterParseOKContinuar(){
     // el tab queda siempre visible (ver habilitarModoAvance()), con o sin
     // LB publicada. Ya no hace falta reponerlo acá.
   }
+  // v3.20 — content/tab-bar/switchTab ahora se revelan acá, recién después
+  // de que el overlay de avance ya terminó (hideBlockOverlay() arriba, si
+  // aplicaba) y justo antes de renderAll() — todo aparece junto, con datos.
+  document.getElementById('content').style.display='block';
+  document.getElementById('tab-bar').classList.add('visible');
+  switchTab('dashboard');
   renderAll();
   // v3.10 — HOTFIX #3: con el fix de v3.08, en este flujo (LB publicada)
   // habilitarModoAvance() -y su actualizarFechaMedicionDefault() interno-
@@ -7870,9 +7911,34 @@ function dcmaPointsFor(pct, weight){
   if(s==='yellow') return weight/2;
   return 0;
 }
-function dcmaTaskName(ctx, uid){
+// v3.16 — Punto 4: dcmaTaskName() reemplazada por 3 helpers que arman
+// offenders estructurados {id, wbs, nombre, concat, ...} en vez de un string
+// ya armado — necesario para poder exportar a XLSX con columnas ID/EDT
+// filtrables (ver handoff v3.16). dcmaTaskRef() sigue resolviendo una tarea
+// por UID (uso interno de los checks de vínculo, que solo tienen el UID de
+// la predecesora, no el objeto completo).
+function dcmaTaskRef(ctx, uid){
   const t = ctx.tasks.find(x=>x.uid===uid);
-  return t ? t.name : ('UID '+uid);
+  return t ? {id:t.id||'', wbs:t.wbs||'', nombre:t.name} : {id:'', wbs:'', nombre:'UID '+uid};
+}
+// Offender de una sola tarea (checks: logic, hardc, highfloat, negfloat,
+// highdur, invdates, resources, cpcontinuity). `extra` es el sufijo de
+// contexto que antes iba pegado al nombre (ej. ' — 60d', ' (tipo 2)').
+function dcmaOffenderTask(t, extra){
+  const concat = `${t.id?t.id+' - ':''}${t.wbs?t.wbs+' ':''}${t.name}${extra||''}`;
+  return {id:t.id||'', wbs:t.wbs||'', nombre:t.name, concat};
+}
+// Offender de vínculo (checks: leads, lags, reltype) — sucesora + predecesora,
+// con el ID/EDT de la predecesora insertados en el texto (a pedido de Ale).
+function dcmaOffenderLink(ctx, link, detalle){
+  const suc = dcmaTaskRef(ctx, link.toUid);
+  const pred = dcmaTaskRef(ctx, link.uid);
+  const predTxt = `${pred.id?pred.id+' - ':''}${pred.wbs?pred.wbs+' ':''}${pred.nombre}`;
+  return {
+    id:suc.id, wbs:suc.wbs, nombre:suc.nombre,
+    predId:pred.id, predWbs:pred.wbs, predNombre:pred.nombre,
+    concat: `${suc.nombre} ← ${predTxt} (${detalle})`
+  };
 }
 
 // FASE 1 — Parseo de la estructura del plan (tareas, vínculos, asignaciones)
@@ -7890,6 +7956,11 @@ function dcmaFase1Parseo(xmlSource){
     }));
     return {
       uid: parseInt(gt(el,'UID')),
+      // v3.16 — Punto 4: id (ID visible de Project) y wbs (EDT) — antes este
+      // parseo aislado (no reutiliza STATE.tasks, ver comentario histórico
+      // arriba) no los traía porque solo hacía falta el nombre para mostrar
+      // en pantalla. Ahora hacen falta para las columnas del export XLSX.
+      id: gt(el,'ID') || '', wbs: gt(el,'WBS') || '',
       name: gt(el,'Name') || '(sin nombre)',
       summary: gt(el,'Summary') === '1',
       milestone: gt(el,'Milestone') === '1',
@@ -7933,7 +8004,7 @@ function dcmaFase2Logica(ctx){
       desc:'Tareas de detalle sin ningún vínculo (ni predecesora ni sucesora). Rompen la continuidad de la red y el CP calculado sobre ellas no es confiable.',
       standard:'Estándar DCMA: ≤ 5% de las tareas',
       value: offenders.length+' tareas ('+pct.toFixed(1)+'%)', threshold:'≤ 5%', pct: pct/5,
-      offenders: offenders.map(t=>t.name)});
+      offenders: offenders.map(t=>dcmaOffenderTask(t))});
   }
   {
     const offenders = allLinks.filter(l => l.lag < 0);
@@ -7942,7 +8013,7 @@ function dcmaFase2Logica(ctx){
       standard:'Estándar DCMA: 0% permitido',
       value: offenders.length+' vínculos', threshold:'0',
       pct: offenders.length>0 ? (offenders.length<=2?1.3:2.5) : 0,
-      offenders: offenders.map(l=>dcmaTaskName(ctx,l.toUid)+' ← '+dcmaTaskName(ctx,l.uid)+' (lag '+l.lag+'min)')});
+      offenders: offenders.map(l=>dcmaOffenderLink(ctx,l,'lag '+l.lag+'min'))});
   }
   {
     const offenders = allLinks.filter(l => l.lag > 0);
@@ -7951,7 +8022,7 @@ function dcmaFase2Logica(ctx){
       desc:'Vínculos con retraso (lag positivo). En exceso pueden ocultar tareas que deberían modelarse como actividades propias.',
       standard:'Estándar DCMA: ≤ 5% de los vínculos',
       value: offenders.length+' vínculos ('+pct.toFixed(1)+'%)', threshold:'≤ 5%', pct: pct/5,
-      offenders: offenders.map(l=>dcmaTaskName(ctx,l.toUid)+' ← '+dcmaTaskName(ctx,l.uid)+' (lag '+l.lag+'min)')});
+      offenders: offenders.map(l=>dcmaOffenderLink(ctx,l,'lag '+l.lag+'min'))});
   }
   {
     const fs = allLinks.filter(l => l.type===1).length;
@@ -7961,7 +8032,7 @@ function dcmaFase2Logica(ctx){
       desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total. FS es el tipo de vínculo estándar; abusar de SS/FF/SF suele indicar lógica forzada.',
       standard:'Estándar DCMA: ≥ 90% de los vínculos deben ser FS',
       value: pctFS.toFixed(1)+'% FS ('+fs+'/'+allLinks.length+')', threshold:'≥ 90%', pct: gap/10,
-      offenders: allLinks.filter(l=>l.type!==1).map(l=>dcmaTaskName(ctx,l.toUid)+' ← '+dcmaTaskName(ctx,l.uid)+' (tipo '+l.type+')')});
+      offenders: allLinks.filter(l=>l.type!==1).map(l=>dcmaOffenderLink(ctx,l,'tipo '+l.type))});
   }
   return ctx;
 }
@@ -7978,7 +8049,7 @@ function dcmaFase3Restricciones(ctx){
       desc:'Restricciones duras (Must Start On / Must Finish On) que anulan la lógica de precedencia. Se muestran aparte las restricciones blandas (SNET/SNLT/FNET/FNLT), que no cuentan para este check.',
       standard:'Estándar DCMA: ≤ 5% de las tareas',
       value: offenders.length+' duras ('+pct.toFixed(1)+'%) · '+soft.length+' blandas (informativo)', threshold:'≤ 5%', pct: pct/5,
-      offenders: offenders.map(t=>t.name+' (tipo '+t.constraintType+')')});
+      offenders: offenders.map(t=>dcmaOffenderTask(t,' (tipo '+t.constraintType+')'))});
   }
   {
     const LIMIT_DAYS=44;
@@ -7988,7 +8059,7 @@ function dcmaFase3Restricciones(ctx){
       desc:'Tareas con holgura total mayor a 44 días hábiles. Suele indicar lógica incompleta (tareas "sueltas" sin restricción real).',
       standard:'Estándar DCMA: ≤ 5% de las tareas con TF > 44 días',
       value: offenders.length+' tareas ('+pct.toFixed(1)+'%)', threshold:'≤ 5%', pct: pct/5,
-      offenders: offenders.map(t=>t.name+' — '+dcmaMinToWorkDays(t.totalSlackMin).toFixed(0)+'d')});
+      offenders: offenders.map(t=>dcmaOffenderTask(t,' — '+dcmaMinToWorkDays(t.totalSlackMin).toFixed(0)+'d'))});
   }
   {
     const offenders = detailTasks.filter(t => t.totalSlackMin < 0);
@@ -7997,7 +8068,7 @@ function dcmaFase3Restricciones(ctx){
       standard:'Estándar DCMA: 0% permitido',
       value: offenders.length+' tareas', threshold:'0',
       pct: offenders.length>0 ? (offenders.length<=1?1.3:2.5) : 0,
-      offenders: offenders.map(t=>t.name+' — '+dcmaMinToWorkDays(t.totalSlackMin).toFixed(0)+'d')});
+      offenders: offenders.map(t=>dcmaOffenderTask(t,' — '+dcmaMinToWorkDays(t.totalSlackMin).toFixed(0)+'d'))});
   }
   return ctx;
 }
@@ -8013,7 +8084,7 @@ function dcmaFase4DuracionFechas(ctx){
       desc:'Tareas de detalle con duración mayor a 44 días hábiles. Suelen estar mal descompuestas (deberían dividirse en IWPs más chicos).',
       standard:'Estándar DCMA: ≤ 5% de las tareas con duración > 44 días',
       value: offenders.length+' tareas ('+pct.toFixed(1)+'%)', threshold:'≤ 5%', pct: pct/5,
-      offenders: offenders.map(t=>t.name+' — '+dcmaHoursToWorkDays(t.durationH).toFixed(0)+'d')});
+      offenders: offenders.map(t=>dcmaOffenderTask(t,' — '+dcmaHoursToWorkDays(t.durationH).toFixed(0)+'d'))});
   }
   {
     const today = new Date();
@@ -8027,7 +8098,7 @@ function dcmaFase4DuracionFechas(ctx){
       standard:'Estándar DCMA: 0% permitido',
       value: offenders.length+' tareas' + (detailTasks.every(t=>!t.actualStart && !t.actualFinish) ? ' — sin fechas reales cargadas en este XML (avance no integrado)' : ''),
       threshold:'0', pct: offenders.length>0 ? 2.5 : 0,
-      offenders: offenders.map(t=>t.name)});
+      offenders: offenders.map(t=>dcmaOffenderTask(t))});
   }
   return ctx;
 }
@@ -8043,7 +8114,7 @@ function dcmaFase5RecursosYCierre(ctx){
       desc:'Tareas de trabajo sin ningún recurso asignado. No rompe el CP por sí solo, pero impide costear y medir avance físico real.',
       standard:'Criterio propio (no estándar DCMA estricto): ≤ 20% de las tareas',
       value: offenders.length+' tareas ('+pct.toFixed(1)+'%)', threshold:'≤ 20%', pct: pct/20,
-      offenders: offenders.map(t=>t.name)});
+      offenders: offenders.map(t=>dcmaOffenderTask(t))});
   }
   {
     const critTasks = detailTasks.filter(t => t.critical);
@@ -8059,7 +8130,7 @@ function dcmaFase5RecursosYCierre(ctx){
       standard:'Estándar DCMA (Critical Path Test): la red debe tener un CP continuo e ininterrumpido',
       value: breaks.length+' tareas críticas aisladas de '+critTasks.length, threshold:'0',
       pct: breaks.length>0 ? (breaks.length<=1?1.3:2.5) : 0,
-      offenders: breaks.map(t=>t.name)});
+      offenders: breaks.map(t=>dcmaOffenderTask(t))});
   }
   let totalScore = 0;
   ctx.checks.forEach(c => {
@@ -8142,6 +8213,12 @@ function renderDCMA(ctx){
     ? 'Diagnóstico guardado al publicar la línea base' + (STATE.project ? ' — ' + STATE.project.name : '')
     : 'Diagnóstico ejecutado sobre ' + (STATE.project ? STATE.project.name : 'el plan cargado');
 
+  // v3.18 — Punto 4: el export XLSX solo tiene sentido en modo vivo — el
+  // reporte histórico (DataCalidad00) no guarda offenders (ver
+  // dcmaCtxDesdeHistorico()), así que no hay detalle que exportar ahí.
+  const btnExport = document.getElementById('btn-dcma-export');
+  if(btnExport) btnExport.style.display = ctx.historico ? 'none' : '';
+
   const statsRow = document.getElementById('dcma-statsRow');
   if(ctx.stats){
     const stats = [
@@ -8160,12 +8237,17 @@ function renderDCMA(ctx){
   }
 
   const container = document.getElementById('dcma-checksContainer');
-  container.innerHTML = ctx.checks.map((c,i) => `
+  container.innerHTML = ctx.checks.map((c,i) => {
+    // v3.16 — Punto 4: el detalle de tareas/vínculos ya no se muestra en
+    // pantalla (decisión de Ale) — queda solo el conteo (arriba, en
+    // dcma-c-name/value) y el texto de mitigación. El detalle completo
+    // vive únicamente en el export XLSX (botón "Exportar XLSX", v3.18).
+    const accion = (DCMA_CHECK_META[c.id] && DCMA_CHECK_META[c.id].accion) || '';
+    return `
     <div class="dcma-check-row" id="dcma-row-${i}">
       <div class="dcma-check-head" onclick="toggleDcmaRow(${i})">
         <div class="dcma-dot dcma-${c.color}"></div>
         <div class="dcma-c-name">${c.name}<small>${c.value}</small></div>
-        <div class="dcma-c-value"></div>
         <div class="dcma-c-thresh">${c.threshold}</div>
         <div class="dcma-c-weight">peso ${c.weight}</div>
         <div class="dcma-c-pts">${c.points.toFixed(1)}</div>
@@ -8175,15 +8257,11 @@ function renderDCMA(ctx){
         <div class="dcma-check-detail-inner">
           <div class="dcma-check-desc">${c.desc}</div>
           <div class="dcma-check-standard">${c.standard}</div>
-          ${ctx.historico
-            ? '<div class="dcma-no-issues">Detalle de tareas no disponible en el reporte histórico (no se guarda al publicar la LB).</div>'
-            : (c.offenders.length
-                ? '<ul class="dcma-task-list">' + c.offenders.map(o=>'<li>'+o+'</li>').join('') + '</ul>'
-                : '<div class="dcma-no-issues">✓ Sin hallazgos</div>')}
+          ${accion ? '<div class="dcma-check-accion"><b>Acción sugerida:</b> '+accion+'</div>' : ''}
         </div>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 
   document.getElementById('dcma-empty').style.display='none';
   document.getElementById('dcma-wrap').style.display='block';
@@ -8322,18 +8400,33 @@ async function cargarDataCalidadHistorico(){
 // XML — no se guardan en DataCalidad00 (sería dato redundante). Esta tabla
 // los calca 1:1 de dcmaFase2Logica/Fase3/Fase4/Fase5 (líneas ~7708-7876)
 // para que el modo histórico los muestre igual que el gate en vivo.
+// v3.16 — Punto 4/5: se agrega `accion` (texto de mitigación / qué hacer
+// para corregir el hallazgo) a cada check. Borrador trabajado con Ale en la
+// sesión de diseño — ajustable, vive acá como única fuente (se usa tanto en
+// vivo, vía renderDCMA(), como en el reporte histórico).
 const DCMA_CHECK_META = {
-  logic:        { desc:'Tareas de detalle sin ningún vínculo (ni predecesora ni sucesora). Rompen la continuidad de la red y el CP calculado sobre ellas no es confiable.', standard:'Estándar DCMA: ≤ 5% de las tareas', threshold:'≤ 5%' },
-  leads:        { desc:'Vínculos con adelanto (lag negativo). Comprimen la lógica artificialmente y distorsionan el cálculo de holgura.', standard:'Estándar DCMA: 0% permitido', threshold:'0' },
-  lags:         { desc:'Vínculos con retraso (lag positivo). En exceso pueden ocultar tareas que deberían modelarse como actividades propias.', standard:'Estándar DCMA: ≤ 5% de los vínculos', threshold:'≤ 5%' },
-  reltype:      { desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total. FS es el tipo de vínculo estándar; abusar de SS/FF/SF suele indicar lógica forzada.', standard:'Estándar DCMA: ≥ 90% de los vínculos deben ser FS', threshold:'≥ 90%' },
-  hardc:        { desc:'Restricciones duras (Must Start On / Must Finish On) que anulan la lógica de precedencia. Se muestran aparte las restricciones blandas (SNET/SNLT/FNET/FNLT), que no cuentan para este check.', standard:'Estándar DCMA: ≤ 5% de las tareas', threshold:'≤ 5%' },
-  highfloat:    { desc:'Tareas con holgura total mayor a 44 días hábiles. Suele indicar lógica incompleta (tareas "sueltas" sin restricción real).', standard:'Estándar DCMA: ≤ 5% de las tareas con TF > 44 días', threshold:'≤ 5%' },
-  negfloat:     { desc:'Tareas con holgura negativa: el plan ya está incumpliendo su propia lógica de fechas. Señal fuerte de plan roto.', standard:'Estándar DCMA: 0% permitido', threshold:'0' },
-  highdur:      { desc:'Tareas de detalle con duración mayor a 44 días hábiles. Suelen estar mal descompuestas (deberían dividirse en IWPs más chicos).', standard:'Estándar DCMA: ≤ 5% de las tareas con duración > 44 días', threshold:'≤ 5%' },
-  invdates:     { desc:'Fechas reales (Actual Start / Actual Finish) posteriores a la fecha de hoy. Indica error de carga o de status date.', standard:'Estándar DCMA: 0% permitido', threshold:'0' },
-  resources:    { desc:'Tareas de trabajo sin ningún recurso asignado. No rompe el CP por sí solo, pero impide costear y medir avance físico real.', standard:'Criterio propio (no estándar DCMA estricto): ≤ 20% de las tareas', threshold:'≤ 20%' },
-  cpcontinuity: { desc:'Verifica que las tareas críticas formen una cadena continua (cada tarea crítica debería encadenar con al menos otra tarea crítica). Huecos en la cadena indican que el "camino crítico" del XML es en realidad varios fragmentos sueltos.', standard:'Estándar DCMA (Critical Path Test): la red debe tener un CP continuo e ininterrumpido', threshold:'0' },
+  logic:        { desc:'Tareas de detalle sin ningún vínculo (ni predecesora ni sucesora). Rompen la continuidad de la red y el CP calculado sobre ellas no es confiable.', standard:'Estándar DCMA: ≤ 5% de las tareas', threshold:'≤ 5%',
+    accion:'Vincular estas tareas con al menos una predecesora y una sucesora. Si son actividades reales, no deberían quedar sueltas en la red.' },
+  leads:        { desc:'Vínculos con adelanto (lag negativo). Comprimen la lógica artificialmente y distorsionan el cálculo de holgura.', standard:'Estándar DCMA: 0% permitido', threshold:'0',
+    accion:'Eliminar el adelanto (lag negativo). Si hace falta reflejar solape real entre tareas, reemplazar por una relación SS con desfase positivo en vez de un FS con lag negativo.' },
+  lags:         { desc:'Vínculos con retraso (lag positivo). En exceso pueden ocultar tareas que deberían modelarse como actividades propias.', standard:'Estándar DCMA: ≤ 5% de los vínculos', threshold:'≤ 5%',
+    accion:'Revisar si el retraso representa una espera real (curado, secado, trámite) o si debería modelarse como una tarea propia con recurso y duración asignados.' },
+  reltype:      { desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total. FS es el tipo de vínculo estándar; abusar de SS/FF/SF suele indicar lógica forzada.', standard:'Estándar DCMA: ≥ 90% de los vínculos deben ser FS', threshold:'≥ 90%',
+    accion:'Reemplazar vínculos SS/FF/SF por FS donde sea posible. Si el vínculo no-FS es intencional, documentarlo para no confundirlo con lógica forzada.' },
+  hardc:        { desc:'Restricciones duras (Must Start On / Must Finish On) que anulan la lógica de precedencia. Se muestran aparte las restricciones blandas (SNET/SNLT/FNET/FNLT), que no cuentan para este check.', standard:'Estándar DCMA: ≤ 5% de las tareas', threshold:'≤ 5%',
+    accion:'Reemplazar restricciones duras (MSO/MFO) por blandas (SNET/FNET), o quitarlas y dejar que la lógica de predecesoras defina la fecha.' },
+  highfloat:    { desc:'Tareas con holgura total mayor a 44 días hábiles. Suele indicar lógica incompleta (tareas "sueltas" sin restricción real).', standard:'Estándar DCMA: ≤ 5% de las tareas con TF > 44 días', threshold:'≤ 5%',
+    accion:'Revisar si falta una predecesora o sucesora real — una holgura tan alta suele indicar una tarea desconectada de la ruta crítica.' },
+  negfloat:     { desc:'Tareas con holgura negativa: el plan ya está incumpliendo su propia lógica de fechas. Señal fuerte de plan roto.', standard:'Estándar DCMA: 0% permitido', threshold:'0',
+    accion:'Corregir la lógica o las fechas que generan el conflicto — la holgura negativa indica que el plan ya incumple sus propias restricciones.' },
+  highdur:      { desc:'Tareas de detalle con duración mayor a 44 días hábiles. Suelen estar mal descompuestas (deberían dividirse en IWPs más chicos).', standard:'Estándar DCMA: ≤ 5% de las tareas con duración > 44 días', threshold:'≤ 5%',
+    accion:'Descomponer la tarea en IWPs más chicos, siguiendo el criterio AWP de paquetes cortos (idealmente ≤ 44 días hábiles).' },
+  invdates:     { desc:'Fechas reales (Actual Start / Actual Finish) posteriores a la fecha de hoy. Indica error de carga o de status date.', standard:'Estándar DCMA: 0% permitido', threshold:'0',
+    accion:'Revisar la Fecha de Medición/Status Date del archivo y las fechas reales cargadas — probablemente hay un error de carga o de calendario.' },
+  resources:    { desc:'Tareas de trabajo sin ningún recurso asignado. No rompe el CP por sí solo, pero impide costear y medir avance físico real.', standard:'Criterio propio (no estándar DCMA estricto): ≤ 20% de las tareas', threshold:'≤ 20%',
+    accion:'Asignar un recurso HHD real a estas tareas para poder medir avance físico y costear el trabajo.' },
+  cpcontinuity: { desc:'Verifica que las tareas críticas formen una cadena continua (cada tarea crítica debería encadenar con al menos otra tarea crítica). Huecos en la cadena indican que el "camino crítico" del XML es en realidad varios fragmentos sueltos.', standard:'Estándar DCMA (Critical Path Test): la red debe tener un CP continuo e ininterrumpido', threshold:'0',
+    accion:'Revisar la lógica alrededor de estas tareas críticas aisladas — probablemente falta un vínculo con la cadena crítica principal.' },
 };
 
 // v3.06 — mapea las filas planas de DataCalidad00 al ctx que espera
@@ -8356,6 +8449,98 @@ function dcmaCtxDesdeHistorico(rows){
       };
     })
   };
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT XLSX — v3.18, Punto 4 (2da mitad, ver v3.16 para la 1ra)
+// Usa SheetJS (ya cargado por CDN, línea ~19 — reutilizado del módulo
+// Avance, no se agregó una 2da carga). Solo se llama desde el botón
+// #btn-dcma-export, que renderDCMA() muestra únicamente si !ctx.historico
+// (el reporte histórico no guarda offenders, no hay detalle que exportar).
+// ═══════════════════════════════════════════════
+
+// Nombre corto por check — Excel limita nombres de hoja a 31 caracteres y
+// no admite : \ / ? * [ ], así que se arma una tabla propia en vez de
+// recortar c.name a lo bruto (que cortaría a mitad de palabra o dejaría
+// paréntesis colgando).
+const DCMA_NOMBRE_HOJA = {
+  logic:'Missing Logic', leads:'Leads', lags:'Lags', reltype:'Relationship Types',
+  hardc:'Hard Constraints', highfloat:'High Float', negfloat:'Negative Float',
+  highdur:'High Duration', invdates:'Invalid Dates', resources:'Resources',
+  cpcontinuity:'CP Continuity',
+};
+// Los 3 checks de vínculo llevan columnas extra (predecesora) — el resto
+// son de una sola tarea (ver dcmaOffenderTask/dcmaOffenderLink, v3.16).
+const DCMA_CHECKS_VINCULO = new Set(['leads','lags','reltype']);
+
+function dcmaXlsxBaseNombre(){
+  const raw = (STATE.project && STATE.project.name) ? STATE.project.name : 'PdTT';
+  // El campo Name del XML suele traer el nombre de archivo original
+  // (incluida la extensión) — se saca el .xml y se sanitizan caracteres
+  // no válidos para nombre de archivo.
+  return raw.replace(/\.xml$/i,'').replace(/[\\/:*?"<>|]/g,'_').trim() || 'PdTT';
+}
+function dcmaXlsxFechaHora(){
+  const d = new Date();
+  const p2 = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+}
+
+function buildDcmaXlsx(ctx){
+  if(!ctx || !ctx.checks || !ctx.checks.length){
+    openAppModal({titulo:'Sin datos para exportar', cuerpo:'No hay un diagnóstico DCMA calculado en este momento.', botones:[{label:'Cerrar', primary:true, action:closeAppModal}]});
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Hoja 1 — "Calidad": v3.19 — reestructurada a pedido de Ale. Antes
+  // repetía LB/Fecha/Score/Veredicto en las 11 filas (correcto para una
+  // base de datos, pero redundante para un reporte de lectura). Ahora va
+  // un bloque vertical (una sola vez) + la tabla de los 11 checks debajo,
+  // sin esas columnas repetidas. Sin colores — la librería SheetJS
+  // Community Edition (xlsx.full.min.js, la que tenemos cargada) no
+  // soporta escribir estilos de celda; requeriría cambiar de librería
+  // (ver conversación de diseño v3.19).
+  const lbNombre = STATE.project ? STATE.project.name : '';
+  const verdictoNivel = dcmaVerdictFor(ctx.totalScore);
+  const verdictoDetalle = dcmaDescFor(ctx);
+  const filasCalidad = [
+    ['Archivo', lbNombre],
+    ['Fecha Publicación', '— (no publicada — diagnóstico en modo Chequear Plan)'],
+    ['Fecha Análisis', ctx.analysisDate || new Date().toISOString()],
+    ['Score General', ctx.totalScore],
+    ['Veredicto', verdictoNivel],
+    ['Veredicto (detalle)', verdictoDetalle],
+    [],
+    ['Check ID','Check','Valor','Color','Peso','Puntos','Acción Sugerida'],
+    ...ctx.checks.map(c => [
+      c.id, c.name, c.value, c.color, c.weight, c.points,
+      (DCMA_CHECK_META[c.id] && DCMA_CHECK_META[c.id].accion) || ''
+    ]),
+  ];
+  const wsCalidad = XLSX.utils.aoa_to_sheet(filasCalidad);
+  XLSX.utils.book_append_sheet(wb, wsCalidad, 'Calidad');
+
+  // ── Una hoja por check con offenders>0 ──
+  ctx.checks.forEach(c => {
+    if(!c.offenders || !c.offenders.length) return;
+    const esVinculo = DCMA_CHECKS_VINCULO.has(c.id);
+    const filasDetalle = c.offenders.map(o => esVinculo ? {
+      'Concatenado': o.concat,
+      'ID': o.id, 'EDT': o.wbs,
+      'ID Predecesora': o.predId, 'EDT Predecesora': o.predWbs,
+    } : {
+      'Concatenado': o.concat,
+      'ID': o.id, 'EDT': o.wbs,
+    });
+    const ws = XLSX.utils.json_to_sheet(filasDetalle);
+    const nombreHoja = (DCMA_NOMBRE_HOJA[c.id] || c.id).slice(0,31);
+    XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+  });
+
+  const nombreArchivo = `${dcmaXlsxBaseNombre()}_TestCalidad_${dcmaXlsxFechaHora()}.xlsx`;
+  XLSX.writeFile(wb, nombreArchivo);
 }
 </script>
 </body>
