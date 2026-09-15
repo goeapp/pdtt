@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PdTT v3.3.0 — Plan de Trabajo · Tablero</title>
+<title>PdTT v3.4.0 — Plan de Trabajo · Tablero</title>
 
 <!-- DataTables + Buttons -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
@@ -1084,7 +1084,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 }
 .dcma-no-issues{color:var(--green); font-size:12px;}
 
-/* v3.3.0 — Selector de método (DCMA / PP) y piezas del perfil PP */
+/* v3.3.0/v3.4.0 — Selector de método (DCMA / PP) y piezas del perfil PP */
 .dcma-method-toggle{display:flex; gap:0; margin-bottom:14px; border:1px solid var(--border); border-radius:8px; width:fit-content; overflow:hidden;}
 .dcma-method-btn{
   border:none; background:var(--bg2); color:var(--text-muted); font-size:12.5px; font-weight:600;
@@ -1096,12 +1096,20 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   display:inline-block; margin-top:8px; font-size:11px; color:var(--text-muted);
   background:var(--bg2); border:1px solid var(--border); border-radius:5px; padding:3px 8px;
 }
-.dcma-day-toggle{display:flex; gap:6px; align-items:center; margin-top:10px; font-size:11.5px; color:var(--text-muted);}
+/* v3.4.0 — el toggle se movió de adentro del detalle a la fila colapsada,
+   pegado al nombre — necesita envolver nombre+toggle en un flex para no
+   romper las 6 columnas fijas de .dcma-check-head (grid-template-columns). */
+.dcma-c-name-wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.dcma-day-toggle{display:flex; gap:6px; align-items:center; font-size:11.5px; color:var(--text-muted);}
 .dcma-day-toggle button{
   border:1px solid var(--border); background:var(--bg2); color:var(--text-muted);
   font-size:11px; padding:4px 9px; border-radius:5px; cursor:pointer;
 }
 .dcma-day-toggle button.active{background:var(--amber); color:#fff; border-color:var(--amber);}
+/* v3.4.0 — texto fijo equivalente al toggle, solo para impresión (ver
+   @media print más abajo) — así el criterio hábil/corridos elegido no se
+   pierde en el PDF, aunque los botones interactivos se oculten. */
+.dcma-day-print{display:none; font-size:11px; color:var(--text-muted);}
 
 .dcma-legend{
   display:flex; gap:18px; margin-top:20px; font-size:11.5px; color:var(--text-muted);
@@ -1124,6 +1132,22 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 #dt-avance tr.fila-advertencia td.col-cant,
 #dt-avance tr.fila-advertencia td.col-hh { background:#fffbeb !important; }
 
+/* v3.4.0 — Impresión/PDF del tab Calidad. A pedido de Ale: imprime
+   exactamente lo que se ve en pantalla en ese momento (Método DCMA o PP,
+   el que esté activo) — se oculta el resto de la app (header oscuro, nav
+   de tabs) y los controles que no tienen sentido en papel (selector de
+   método, botón Exportar XLSX, botones del toggle días hábiles/corridos —
+   se reemplazan por su texto fijo equivalente, .dcma-day-print, para no
+   perder esa info en el PDF). Sin botón dedicado — se dispara con Ctrl+P /
+   menú de impresión nativo del navegador, este CSS hace el resto. */
+@media print{
+  #app-header, #tab-bar, #dcma-method-toggle, #btn-dcma-export{ display:none !important; }
+  .dcma-day-toggle{ display:none !important; }
+  .dcma-day-print{ display:inline !important; }
+  #panel-calidad{ padding:0 !important; max-width:none !important; }
+  .dcma-check-row{ break-inside:avoid; }
+}
+
 </style>
 </head>
 <body>
@@ -1133,7 +1157,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   <div class="header-left">
     <div class="brand">PdTT</div>
     <div><div class="brand-sub">Plan de Trabajo · Tablero</div></div>
-    <span class="version-badge">v3.3.0</span>
+    <span class="version-badge">v3.4.0</span>
   </div>
   <div id="header-proj">
     <div id="header-proj-name"></div>
@@ -1603,7 +1627,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 // ═══════════════════════════════════════════════
 // VERSIÓN
 // ═══════════════════════════════════════════════
-const APP_VERSION = 'v3.3.0';
+const APP_VERSION = 'v3.4.0';
 
 // ═══════════════════════════════════════════════
 // NAVEGACIÓN POR TABS
@@ -8507,27 +8531,27 @@ function ppDurationHToDays(h, tipo){
 // los 3 checks con umbral en días.
 const PP_CHECK_META = {
   logic:      { name:'Logic', dcmaName:'Missing Logic',
-    desc:'Actividades sin predecesora o sucesora.', standard:'Anexo 3.1 §8.3: < 5% de las tareas' },
+    desc:'Actividades sin predecesora o sucesora.', standard:'Método PP: < 5% de las tareas' },
   neglags:    { name:'Negative Lags', dcmaName:'Leads (Adelantos)',
-    desc:'Vínculos con lag negativo (adelanto).', standard:'Anexo 3.1 §8.3: < 10% de los vínculos' },
+    desc:'Vínculos con lag negativo (adelanto).', standard:'Método PP: < 10% de los vínculos' },
   poslags:    { name:'Positive Lags', dcmaName:'Lags (Retrasos)',
-    desc:'Vínculos con lag positivo (retraso).', standard:'Anexo 3.1 §8.3: < 10% de los vínculos' },
+    desc:'Vínculos con lag positivo (retraso).', standard:'Método PP: < 10% de los vínculos' },
   longlags:   { name:'Long Lags', dcmaName:null,
     desc:'Vínculos con lag mayor a 45 días. Check propio del pliego, sin equivalente en DCMA 14-Point.',
-    standard:'Anexo 3.1 §8.3: < 10% de los vínculos', diaToggle:'longlags', diaLimite:45 },
+    standard:'Método PP: < 10% de los vínculos', diaToggle:'longlags', diaLimite:45 },
   reltype:    { name:'Relationship Type', dcmaName:'Relationship Types',
-    desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total.', standard:'Anexo 3.1 §8.3: > 60% de los vínculos deben ser FS' },
+    desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total.', standard:'Método PP: > 60% de los vínculos deben ser FS' },
   hardc:      { name:'Hard Constraints', dcmaName:'Hard Constraints (Restricciones Duras)',
-    desc:'Restricciones que impiden mover la tarea.', standard:'Anexo 3.1 §8.3: < 1% de las tareas' },
+    desc:'Restricciones que impiden mover la tarea.', standard:'Método PP: < 1% de las tareas' },
   softc:      { name:'Soft Constraints', dcmaName:null,
     desc:'Restricciones que NO impiden mover la tarea. Dato ya identificado por DCMA (informativo dentro de Hard Constraints), acá se pondera como check propio.',
-    standard:'Anexo 3.1 §8.3: < 5% de las tareas' },
+    standard:'Método PP: < 5% de las tareas' },
   largefloat: { name:'Large Float', dcmaName:'High Float (Holgura/Demora Alta)',
-    desc:'Tareas con holgura total mayor a 60 días.', standard:'Anexo 3.1 §8.3: < 5% de las tareas', diaToggle:'largefloat', diaLimite:60 },
+    desc:'Tareas con holgura total mayor a 60 días.', standard:'Método PP: < 5% de las tareas', diaToggle:'largefloat', diaLimite:60 },
   negfloat:   { name:'Negative Float', dcmaName:'Negative Float (Holgura/Demora Negativa)',
-    desc:'Tareas con holgura total negativa: el plan ya incumple su propia lógica de fechas.', standard:'Anexo 3.1 §8.3: = 0%' },
+    desc:'Tareas con holgura total negativa: el plan ya incumple su propia lógica de fechas.', standard:'Método PP: = 0%' },
   largedur:   { name:'Large Durations', dcmaName:'High Duration (Duración Alta)',
-    desc:'Tareas con duración remanente mayor a 35 días.', standard:'Anexo 3.1 §8.3: < 5% de las tareas', diaToggle:'largedur', diaLimite:35 },
+    desc:'Tareas con duración remanente mayor a 35 días.', standard:'Método PP: < 5% de las tareas', diaToggle:'largedur', diaLimite:35 },
 };
 const PP_CHECK_ORDER = ['logic','neglags','poslags','longlags','reltype','hardc','softc','largefloat','negfloat','largedur'];
 
@@ -8620,8 +8644,7 @@ function ppComputeChecks(ctx){
 function ppVerdictFor(score){ return score>=90 ? 'APROBADO — cumple el umbral contractual' : 'NO APROBADO — no llega al umbral contractual'; }
 function ppColorFor(score){ return score>=90 ? 'var(--green)' : 'var(--red)'; }
 function ppDescFor(){
-  return '10 de 10 puntos del Anexo 3.1 §8.3 (Bases Técnicas — Cronograma de Obra) evaluados. '
-    + 'Umbral de aprobación contractual: calificación final ≥ 90%.';
+  return '10 de 10 puntos evaluados. Umbral de aprobación contractual: calificación final ≥ 90%.';
 }
 
 // v3.3.0 — cambia el toggle días hábiles/corridos de un check puntual
@@ -8661,19 +8684,29 @@ function renderPP(ctx){
   container.innerHTML = ppResult.checks.map((c,i) => {
     const badge = c.dcmaName ? `<div class="dcma-pp-badge">Equivalente DCMA: ${c.dcmaName}</div>` : '';
     let toggleHtml = '';
+    let toggleTextoImpreso = '';
     if(c.diaToggle){
       const tipoActual = STATE.ppDiaTipo[c.diaToggle];
-      toggleHtml = `<div class="dcma-day-toggle" onclick="event.stopPropagation()">
-        Umbral (${c.diaLimite}d) en:
+      // v3.4.0 — el toggle vive en la fila colapsada (a pedido de Ale, sin
+      // tener que expandir cada check). onclick con stopPropagation para
+      // que clickear los botones no dispare toggleDcmaRow(). En impresión
+      // (@media print) los botones se ocultan y aparece un texto fijo
+      // equivalente (.dcma-day-print), para no perder el criterio elegido.
+      toggleHtml = `<div class="dcma-day-toggle" onclick="event.stopPropagation()" title="Umbral: ${c.diaLimite} días">
         <button type="button" class="${tipoActual==='habil'?'active':''}" onclick="setPpDiaTipo('${c.diaToggle}','habil')">Días hábiles</button>
         <button type="button" class="${tipoActual==='corridos'?'active':''}" onclick="setPpDiaTipo('${c.diaToggle}','corridos')">Días corridos</button>
       </div>`;
+      toggleTextoImpreso = `<span class="dcma-day-print">Umbral ${c.diaLimite}d — ${tipoActual==='corridos'?'días corridos':'días hábiles'}</span>`;
     }
     return `
     <div class="dcma-check-row" id="dcma-row-${i}">
       <div class="dcma-check-head" onclick="toggleDcmaRow(${i})">
         <div class="dcma-dot dcma-${c.color}"></div>
-        <div class="dcma-c-name">${c.name}<small>${c.value}</small></div>
+        <div class="dcma-c-name-wrap">
+          <div class="dcma-c-name">${c.name}<small>${c.value}</small></div>
+          ${toggleHtml}
+          ${toggleTextoImpreso}
+        </div>
         <div class="dcma-c-thresh">${c.threshold}</div>
         <div class="dcma-c-weight">peso ${c.weight}</div>
         <div class="dcma-c-pts">${c.points.toFixed(1)}</div>
@@ -8684,14 +8717,13 @@ function renderPP(ctx){
           <div class="dcma-check-desc">${c.desc}</div>
           <div class="dcma-check-standard">${c.standard}</div>
           ${badge}
-          ${toggleHtml}
         </div>
       </div>
     </div>
   `;}).join('');
 
   document.getElementById('dcma-footer').textContent =
-    'Pluspetrol — Anexo 3.1 §8.3 (Bases Técnicas, Cronograma de Obra) · Umbral de aprobación: calificación final ≥ 90%';
+    'Método PP — Umbral de aprobación: calificación final ≥ 90%';
 
   document.getElementById('dcma-empty').style.display='none';
   document.getElementById('dcma-wrap').style.display='block';
@@ -8860,7 +8892,7 @@ function buildPpXlsx(ctx){
     ['Archivo', lbNombre],
     ['Fecha Publicación', '— (no publicada — diagnóstico en Modo Diagnóstico)'],
     ['Fecha Análisis', ctx.analysisDate || new Date().toISOString()],
-    ['Perfil', 'Pluspetrol — Anexo 3.1 §8.3'],
+    ['Perfil', 'Método PP'],
     ['Score General', ppResult.totalScore],
     ['Veredicto', verdictoNivel],
     ['Veredicto (detalle)', verdictoDetalle],
