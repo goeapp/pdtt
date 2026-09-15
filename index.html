@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PdTT v3.20 — Plan de Trabajo · Tablero</title>
+<title>PdTT v3.3.0 — Plan de Trabajo · Tablero</title>
 
 <!-- DataTables + Buttons -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
@@ -1084,6 +1084,25 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 }
 .dcma-no-issues{color:var(--green); font-size:12px;}
 
+/* v3.3.0 — Selector de método (DCMA / PP) y piezas del perfil PP */
+.dcma-method-toggle{display:flex; gap:0; margin-bottom:14px; border:1px solid var(--border); border-radius:8px; width:fit-content; overflow:hidden;}
+.dcma-method-btn{
+  border:none; background:var(--bg2); color:var(--text-muted); font-size:12.5px; font-weight:600;
+  padding:8px 16px; cursor:pointer; transition:background .15s,color .15s;
+}
+.dcma-method-btn.active{background:var(--amber); color:#fff;}
+.dcma-method-btn:not(.active):hover{background:var(--bg3);}
+.dcma-pp-badge{
+  display:inline-block; margin-top:8px; font-size:11px; color:var(--text-muted);
+  background:var(--bg2); border:1px solid var(--border); border-radius:5px; padding:3px 8px;
+}
+.dcma-day-toggle{display:flex; gap:6px; align-items:center; margin-top:10px; font-size:11.5px; color:var(--text-muted);}
+.dcma-day-toggle button{
+  border:1px solid var(--border); background:var(--bg2); color:var(--text-muted);
+  font-size:11px; padding:4px 9px; border-radius:5px; cursor:pointer;
+}
+.dcma-day-toggle button.active{background:var(--amber); color:#fff; border-color:var(--amber);}
+
 .dcma-legend{
   display:flex; gap:18px; margin-top:20px; font-size:11.5px; color:var(--text-muted);
   border-top:1px solid var(--border); padding-top:16px;
@@ -1114,7 +1133,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
   <div class="header-left">
     <div class="brand">PdTT</div>
     <div><div class="brand-sub">Plan de Trabajo · Tablero</div></div>
-    <span class="version-badge">v3.20</span>
+    <span class="version-badge">v3.3.0</span>
   </div>
   <div id="header-proj">
     <div id="header-proj-name"></div>
@@ -1163,7 +1182,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
          mientras "Cargando obras..." todavía está en vuelo; renderObras()
          lo muestra recién cuando las cards ya están pintadas. -->
     <div style="margin-top:16px;" id="chequear-plan-wrap">
-      <button class="btn-primary" id="btn-chequear-plan" style="display:none;" onclick="iniciarChequeoPlan()">Chequear Plan</button>
+      <button class="btn-primary" id="btn-diagnosticar-plan" style="display:none;" onclick="iniciarDiagnosticoPlan()">Diagnosticar Calidad de Plan</button>
     </div>
   </div>
 </div>
@@ -1496,6 +1515,16 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
     <div id="dcma-wrap" style="display:none;">
       <div class="dcma-subtitle" id="dcma-subtitle"></div>
 
+      <!-- v3.3.0 — Selector de método de evaluación. Solo visible en Modo
+           Diagnóstico (!ctx.historico) — ver toggleMetodoVisibility() en
+           renderCalidadActivo(). En modo histórico (LB publicada) no hay
+           datos crudos para recalcular PP, así que el selector se oculta y
+           el tab se queda fijo en DCMA, como siempre. -->
+      <div class="dcma-method-toggle" id="dcma-method-toggle" style="display:none;">
+        <button type="button" class="dcma-method-btn active" id="dcma-method-btn-dcma" onclick="setMetodoCalidad('dcma')">Método DCMA</button>
+        <button type="button" class="dcma-method-btn" id="dcma-method-btn-pp" onclick="setMetodoCalidad('pp')">Método PP</button>
+      </div>
+
       <div class="dcma-score-card">
         <div class="dcma-score-ring" id="dcma-scoreRing">
           <div class="dcma-num" id="dcma-scoreNum">--</div>
@@ -1509,7 +1538,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
         <!-- v3.18 — Punto 4: export XLSX. Oculto por defecto — renderDCMA()
              lo muestra solo si !ctx.historico (no hay detalle de offenders
              guardado en el reporte histórico, ver dcmaCtxDesdeHistorico()). -->
-        <button class="btn-primary" id="btn-dcma-export" style="display:none;flex-shrink:0;padding:10px 18px;font-size:13px;" onclick="buildDcmaXlsx(STATE.dcma)">⬇ Exportar XLSX</button>
+        <button class="btn-primary" id="btn-dcma-export" style="display:none;flex-shrink:0;padding:10px 18px;font-size:13px;" onclick="buildCalidadXlsx()">⬇ Exportar XLSX</button>
       </div>
 
       <div class="dcma-stats-row" id="dcma-statsRow"></div>
@@ -1527,7 +1556,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
         <span><i class="dcma-dot dcma-red" style="display:inline-block"></i> Más del doble del umbral</span>
       </div>
 
-      <footer>DCMA 11/14 puntos (excluye Missed Tasks, CPLI y BEI — requieren fecha de corte y avance real del Sheet, Etapa 3.1) · Umbrales según estándar DCMA 14-Point Assessment</footer>
+      <footer id="dcma-footer">DCMA 11/14 puntos (excluye Missed Tasks, CPLI y BEI — requieren fecha de corte y avance real del Sheet, Etapa 3.1) · Umbrales según estándar DCMA 14-Point Assessment</footer>
     </div>
   </div>
 
@@ -1574,7 +1603,7 @@ tr.fila-advertencia:hover td { background:#fef3c7 !important; }
 // ═══════════════════════════════════════════════
 // VERSIÓN
 // ═══════════════════════════════════════════════
-const APP_VERSION = 'v3.20';
+const APP_VERSION = 'v3.3.0';
 
 // ═══════════════════════════════════════════════
 // NAVEGACIÓN POR TABS
@@ -6443,7 +6472,7 @@ window.addEventListener('resize',()=>{
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxb_LnOo-06m7jv0nriD9xcGmfbJuG7ZcyExIwCU4OjEMEgL9_QvhN6SDht1dbbOH95/exec';
 const EMAIL   = 'alejandro.perin@gmail.com';
 
-const APP = { obras:[], obraSelected:null, modoCalidad:false };
+const APP = { obras:[], obraSelected:null, modoDiagnostico:false };
 
 // v2.15 — Punto 1: logging en consola de cada request al backend GAS, para
 // diagnosticar el 404 intermitente reportado por Ale (se resuelve con F5,
@@ -6487,7 +6516,7 @@ async function cargarObras(){
       <span style="font-size:11px;color:var(--text-muted)">Si la acción 'getObras' del GAS no responde, confirmar GAS_URL y que el backend esté desplegado.</span></div>`;
     // v2.24 — Chequear Plan es independiente de getObras(); no debería
     // quedar bloqueado por un error de fetch de la lista de obras.
-    document.getElementById('btn-chequear-plan').style.display = 'inline-block';
+    document.getElementById('btn-diagnosticar-plan').style.display = 'inline-block';
   }
 }
 
@@ -6496,7 +6525,7 @@ function renderObras(){
   // v2.24 — "Chequear Plan" no depende de tener obras asignadas: se
   // muestra apenas termina de resolver cargarObras(), en cualquiera de
   // los dos casos de abajo (con o sin obras).
-  document.getElementById('btn-chequear-plan').style.display = 'inline-block';
+  document.getElementById('btn-diagnosticar-plan').style.display = 'inline-block';
   if(!APP.obras.length){
     el.innerHTML = '<div style="padding:24px;color:var(--text-muted)">No tenés obras asignadas.</div>';
     return;
@@ -6522,7 +6551,7 @@ async function seleccionarObra(id_sheet){
   // (getProyecto), pudiendo pisar el flujo de selección de obra en curso.
   // Se deshabilita acá y se repone solo en el catch — en el camino feliz
   // toda la pantalla obra-screen (con el botón adentro) queda oculta.
-  const btnChequear = document.getElementById('btn-chequear-plan');
+  const btnChequear = document.getElementById('btn-diagnosticar-plan');
   if(btnChequear) btnChequear.disabled = true;
 
   let proy;
@@ -6557,6 +6586,7 @@ async function seleccionarObra(id_sheet){
 async function cargarDatosDesdeSheet(id_sheet){
   STATE.rawXml = null; STATE.dcma = null; STATE.dcmaPending = false; // v3.00 — modo Avance/Sheet: no hay XML crudo, no corre DCMA
   STATE.dcmaHist = {checked:false, ctx:null, loading:false}; // v3.06 — nueva obra: descartar cache del reporte histórico anterior
+  STATE.metodoCalidad = 'dcma'; // v3.3.0 — nueva obra: vuelve a arrancar en Método DCMA
   showBlockOverlay('Cargando datos del proyecto...', `${APP.obraSelected.obra} — ${APP.obraSelected.nombre}`);
   document.getElementById('content').style.display='none';
 
@@ -6672,7 +6702,7 @@ function poblarStateDesdeSheet(data){
 function volverASelectorObra(){
   APP.obraSelected=null;
   APP.obraProyecto=null;
-  APP.modoCalidad=false; // v2.23
+  APP.modoDiagnostico=false; // v2.23
   document.getElementById('drop-zone').style.display='none';
   document.getElementById('obra-screen').style.display='flex';
   renderObras();
@@ -6683,10 +6713,10 @@ function volverASelectorObra(){
 // subir XML), pero APP.obraSelected/APP.obraProyecto quedan en null, con lo
 // cual afterParseOK() ya deja Actualizar y Publicar deshabilitados/ocultos
 // sin necesidad de tocar esa lógica — es el mismo gate que ya existía.
-function iniciarChequeoPlan(){
+function iniciarDiagnosticoPlan(){
   APP.obraSelected = null;
   APP.obraProyecto = null;
-  APP.modoCalidad = true;
+  APP.modoDiagnostico = true;
   document.getElementById('obra-screen').style.display='none';
   document.getElementById('drop-sub-obra').textContent =
     'Modo Chequear Plan — análisis de calidad, sin obra asociada';
@@ -8310,7 +8340,8 @@ async function runDCMAGate(xmlSource, onDone){
 
     STATE.dcma = ctx;
     STATE.dcma.analysisDate = new Date().toISOString(); // v3.07 — Paso C: momento exacto del gate, viaja a DataCalidad00 al publicar
-    renderDCMA(ctx);
+    STATE.metodoCalidad = 'dcma'; // v3.3.0 — cada diagnóstico nuevo arranca en DCMA, sin excepción (confirmado con Ale)
+    renderCalidadActivo(ctx);
   }catch(err){
     console.error('DCMA gate error:', err);
     STATE.dcma = null;
@@ -8347,7 +8378,7 @@ function mostrarTabCalidad(){
       empty.style.display='none';
       emptyHist.style.display='none';
       wrap.style.display='block';
-      renderDCMA(STATE.dcmaHist.ctx);
+      renderCalidadActivo(STATE.dcmaHist.ctx);
       return;
     }
     if(STATE.dcmaHist.checked){
@@ -8429,6 +8460,273 @@ const DCMA_CHECK_META = {
     accion:'Revisar la lógica alrededor de estas tareas críticas aisladas — probablemente falta un vínculo con la cadena crítica principal.' },
 };
 
+// ═══════════════════════════════════════════════
+// MÉTODO PP (Pluspetrol — Anexo 3.1 §8.3) — v3.3.0
+// Perfil de ponderación alternativo sobre el MISMO motor DCMA. No reparsea
+// el XML ni toca dcmaFase1-5: reutiliza ctx.tasks/ctx.allLinks/etc. (el ctx
+// completo con datos crudos sigue vivo en STATE.dcma) y aplica otra tabla
+// de pesos/umbrales/nombres sobre esos mismos datos. Diseñado y validado
+// con Ale check por check (ver handoff_pdtt_calidad_perfilesmedicion_v1.md
+// y handoff de esta sesión — v3.3.0).
+// Solo disponible en Modo Diagnóstico (ctx sin .historico): el reporte
+// guardado en DataCalidad00 no tiene datos crudos, no hay con qué
+// recalcular PP ahí — ver renderCalidadActivo()/mostrarTabCalidad().
+// Lo que se guarda al publicar LB sigue siendo SIEMPRE DCMA, sin importar
+// qué método esté eligiendo el usuario acá — dos cosas desacopladas.
+// ═══════════════════════════════════════════════
+
+// Método activo + tipo de día por cada uno de los 3 checks con umbral en
+// días (Long Lags, Large Float, Large Durations — el pliego no aclara
+// hábiles/corridos). Default: DCMA activo, los 3 en 'habil' (mismo
+// criterio que ya usa DCMA hoy en highfloat/highdur — sin sorpresa al
+// entrar la primera vez a Método PP).
+STATE.metodoCalidad = 'dcma';
+STATE.ppDiaTipo = { longlags:'habil', largefloat:'habil', largedur:'habil' };
+
+// v3.3.0 — conversión lag→días. OJO: `l.lag` ya viene en MINUTOS (no en
+// décimas) — dcmaFase1Parseo ya hace el /10 al parsear (línea ~7955). Es
+// distinto de dcmaMinToWorkDays(), que sí espera el valor crudo en décimas
+// (TotalSlack) — no reusar esa función acá con l.lag, da 10x mal.
+function ppLagMinToDays(min, tipo){
+  const hsPerDia = STATE.project?.hsPerDia || 8;
+  return tipo==='corridos' ? (min||0)/60/24 : (min||0)/60/hsPerDia;
+}
+// TotalSlack sí viene crudo en décimas de minuto — para 'habil' se reusa
+// dcmaMinToWorkDays() tal cual (mismo campo, mismo criterio que DCMA); para
+// 'corridos' se replica el /10 y se pasa a días de 24hs.
+function ppSlackMinToDays(min, tipo){
+  return tipo==='corridos' ? ((min||0)/10)/60/24 : dcmaMinToWorkDays(min);
+}
+function ppDurationHToDays(h, tipo){
+  return tipo==='corridos' ? (h||0)/24 : dcmaHoursToWorkDays(h);
+}
+
+// Metadata de los 10 checks del pliego — nombre, descripción, umbral en
+// texto, y el equivalente DCMA para el badge de referencia cruzada
+// (PP→DCMA únicamente, confirmado con Ale). diaToggle/diaLimite solo en
+// los 3 checks con umbral en días.
+const PP_CHECK_META = {
+  logic:      { name:'Logic', dcmaName:'Missing Logic',
+    desc:'Actividades sin predecesora o sucesora.', standard:'Anexo 3.1 §8.3: < 5% de las tareas' },
+  neglags:    { name:'Negative Lags', dcmaName:'Leads (Adelantos)',
+    desc:'Vínculos con lag negativo (adelanto).', standard:'Anexo 3.1 §8.3: < 10% de los vínculos' },
+  poslags:    { name:'Positive Lags', dcmaName:'Lags (Retrasos)',
+    desc:'Vínculos con lag positivo (retraso).', standard:'Anexo 3.1 §8.3: < 10% de los vínculos' },
+  longlags:   { name:'Long Lags', dcmaName:null,
+    desc:'Vínculos con lag mayor a 45 días. Check propio del pliego, sin equivalente en DCMA 14-Point.',
+    standard:'Anexo 3.1 §8.3: < 10% de los vínculos', diaToggle:'longlags', diaLimite:45 },
+  reltype:    { name:'Relationship Type', dcmaName:'Relationship Types',
+    desc:'Proporción de vínculos Fin-a-Inicio (FS) sobre el total.', standard:'Anexo 3.1 §8.3: > 60% de los vínculos deben ser FS' },
+  hardc:      { name:'Hard Constraints', dcmaName:'Hard Constraints (Restricciones Duras)',
+    desc:'Restricciones que impiden mover la tarea.', standard:'Anexo 3.1 §8.3: < 1% de las tareas' },
+  softc:      { name:'Soft Constraints', dcmaName:null,
+    desc:'Restricciones que NO impiden mover la tarea. Dato ya identificado por DCMA (informativo dentro de Hard Constraints), acá se pondera como check propio.',
+    standard:'Anexo 3.1 §8.3: < 5% de las tareas' },
+  largefloat: { name:'Large Float', dcmaName:'High Float (Holgura/Demora Alta)',
+    desc:'Tareas con holgura total mayor a 60 días.', standard:'Anexo 3.1 §8.3: < 5% de las tareas', diaToggle:'largefloat', diaLimite:60 },
+  negfloat:   { name:'Negative Float', dcmaName:'Negative Float (Holgura/Demora Negativa)',
+    desc:'Tareas con holgura total negativa: el plan ya incumple su propia lógica de fechas.', standard:'Anexo 3.1 §8.3: = 0%' },
+  largedur:   { name:'Large Durations', dcmaName:'High Duration (Duración Alta)',
+    desc:'Tareas con duración remanente mayor a 35 días.', standard:'Anexo 3.1 §8.3: < 5% de las tareas', diaToggle:'largedur', diaLimite:35 },
+};
+const PP_CHECK_ORDER = ['logic','neglags','poslags','longlags','reltype','hardc','softc','largefloat','negfloat','largedur'];
+
+// Arma los 10 checks PP a partir del ctx crudo (STATE.dcma completo, con
+// tasks/detailTasks/nonMilestoneTasks/allLinks ya parseados por
+// dcmaFase1Parseo — el parser NO se toca). Reutiliza dcmaSemaphore()/
+// dcmaPointsFor() tal cual para el puntaje (mismo criterio semáforo/parcial
+// que DCMA, confirmado con Ale — consistencia visual entre métodos).
+function ppComputeChecks(ctx){
+  const {detailTasks, nonMilestoneTasks, allLinks} = ctx;
+  const dt = STATE.ppDiaTipo;
+  const raw = {};
+
+  raw.logic = (()=>{
+    const off = detailTasks.filter(t => t.preds.length===0 && t.succs.length===0);
+    const pct = detailTasks.length ? off.length/detailTasks.length*100 : 0;
+    return {weight:15, umbralPct:5, pct, valueTxt:off.length+' tareas ('+pct.toFixed(1)+'%)', thresholdTxt:'< 5%'};
+  })();
+  raw.neglags = (()=>{
+    const off = allLinks.filter(l => l.lag < 0);
+    const pct = allLinks.length ? off.length/allLinks.length*100 : 0;
+    return {weight:5, umbralPct:10, pct, valueTxt:off.length+' vínculos ('+pct.toFixed(1)+'%)', thresholdTxt:'< 10%'};
+  })();
+  raw.poslags = (()=>{
+    const off = allLinks.filter(l => l.lag > 0);
+    const pct = allLinks.length ? off.length/allLinks.length*100 : 0;
+    return {weight:5, umbralPct:10, pct, valueTxt:off.length+' vínculos ('+pct.toFixed(1)+'%)', thresholdTxt:'< 10%'};
+  })();
+  raw.longlags = (()=>{
+    const off = allLinks.filter(l => ppLagMinToDays(l.lag, dt.longlags) > 45);
+    const pct = allLinks.length ? off.length/allLinks.length*100 : 0;
+    return {weight:5, umbralPct:10, pct, valueTxt:off.length+' vínculos ('+pct.toFixed(1)+'%)', thresholdTxt:'< 10%'};
+  })();
+  raw.reltype = (()=>{
+    const fs = allLinks.filter(l => l.type===1).length;
+    const pctFS = allLinks.length ? fs/allLinks.length*100 : 100;
+    const gap = Math.max(0, 60-pctFS); // mismo criterio de tolerancia (gap/10) que dcmaFase2Logica usa para su umbral ≥90%
+    return {weight:5, umbralPct:null, pct:gap/10, valueTxt:pctFS.toFixed(1)+'% FS ('+fs+'/'+allLinks.length+')', thresholdTxt:'> 60%'};
+  })();
+  raw.hardc = (()=>{
+    const HARD=[2,3];
+    const off = detailTasks.filter(t => HARD.includes(t.constraintType));
+    const pct = detailTasks.length ? off.length/detailTasks.length*100 : 0;
+    return {weight:10, umbralPct:1, pct, valueTxt:off.length+' duras ('+pct.toFixed(1)+'%)', thresholdTxt:'< 1%'};
+  })();
+  raw.softc = (()=>{
+    const SOFT=[4,5,6,7];
+    const off = detailTasks.filter(t => SOFT.includes(t.constraintType));
+    const pct = detailTasks.length ? off.length/detailTasks.length*100 : 0;
+    return {weight:10, umbralPct:5, pct, valueTxt:off.length+' tareas ('+pct.toFixed(1)+'%)', thresholdTxt:'< 5%'};
+  })();
+  raw.largefloat = (()=>{
+    const off = nonMilestoneTasks.filter(t => ppSlackMinToDays(t.totalSlackMin, dt.largefloat) > 60);
+    const pct = nonMilestoneTasks.length ? off.length/nonMilestoneTasks.length*100 : 0;
+    return {weight:20, umbralPct:5, pct, valueTxt:off.length+' tareas ('+pct.toFixed(1)+'%)', thresholdTxt:'< 5%'};
+  })();
+  raw.negfloat = (()=>{
+    // Cero tolerancia — misma escala sintética que DCMA usa para checks
+    // "0% permitido" (dcmaFase3Restricciones/negfloat): 0 casos → verde,
+    // 1 caso → amarillo, 2+ → rojo. umbralPct:null = ya viene en esa escala.
+    const off = detailTasks.filter(t => t.totalSlackMin < 0);
+    const pct = detailTasks.length ? off.length/detailTasks.length*100 : 0;
+    return {weight:20, umbralPct:null, pct: off.length>0 ? (off.length<=1?1.3:2.5) : 0,
+      valueTxt:off.length+' tareas ('+pct.toFixed(1)+'%)', thresholdTxt:'= 0%'};
+  })();
+  raw.largedur = (()=>{
+    const off = nonMilestoneTasks.filter(t => ppDurationHToDays(t.durationH, dt.largedur) > 35);
+    const pct = nonMilestoneTasks.length ? off.length/nonMilestoneTasks.length*100 : 0;
+    return {weight:5, umbralPct:5, pct, valueTxt:off.length+' tareas ('+pct.toFixed(1)+'%)', thresholdTxt:'< 5%'};
+  })();
+
+  // pctEscala: normaliza a la misma escala que dcmaSemaphore/dcmaPointsFor
+  // esperan (1 = justo en el umbral, 2 = el doble). umbralPct:null → el
+  // check ya calculó su pct directamente en esa escala (reltype, negfloat).
+  let totalScore = 0;
+  const checks = PP_CHECK_ORDER.map(id => {
+    const c = raw[id];
+    const meta = PP_CHECK_META[id];
+    const pctEscala = (c.umbralPct==null) ? c.pct : (c.pct / c.umbralPct);
+    const color = dcmaSemaphore(pctEscala);
+    const points = dcmaPointsFor(pctEscala, c.weight);
+    totalScore += points;
+    return {id, name:meta.name, desc:meta.desc, standard:meta.standard, dcmaName:meta.dcmaName,
+      diaToggle:meta.diaToggle, diaLimite:meta.diaLimite,
+      value:c.valueTxt, threshold:c.thresholdTxt, weight:c.weight, points, color};
+  });
+  return {checks, totalScore: Math.round(totalScore)};
+}
+
+function ppVerdictFor(score){ return score>=90 ? 'APROBADO — cumple el umbral contractual' : 'NO APROBADO — no llega al umbral contractual'; }
+function ppColorFor(score){ return score>=90 ? 'var(--green)' : 'var(--red)'; }
+function ppDescFor(){
+  return '10 de 10 puntos del Anexo 3.1 §8.3 (Bases Técnicas — Cronograma de Obra) evaluados. '
+    + 'Umbral de aprobación contractual: calificación final ≥ 90%.';
+}
+
+// v3.3.0 — cambia el toggle días hábiles/corridos de un check puntual
+// (Long Lags, Large Float o Large Durations, cada uno independiente — a
+// pedido de Ale) y vuelve a pintar el tab: cambia el score porque cambia
+// qué tareas/vínculos caen dentro del umbral.
+function setPpDiaTipo(checkKey, tipo){
+  STATE.ppDiaTipo[checkKey] = tipo;
+  if(STATE.dcma) renderCalidadActivo(STATE.dcma);
+}
+
+function renderPP(ctx){
+  const ppResult = ppComputeChecks(ctx);
+  const ringColor = ppColorFor(ppResult.totalScore);
+  document.getElementById('dcma-scoreRing').style.borderColor = ringColor;
+  document.getElementById('dcma-scoreNum').textContent = ppResult.totalScore;
+  document.getElementById('dcma-scoreNum').style.color = ringColor;
+  document.getElementById('dcma-verdictText').textContent = ppVerdictFor(ppResult.totalScore);
+  document.getElementById('dcma-verdictText').style.color = ringColor;
+  document.getElementById('dcma-verdictDesc').textContent = ppDescFor();
+
+  const btnExport = document.getElementById('btn-dcma-export');
+  if(btnExport) btnExport.style.display = ctx.historico ? 'none' : '';
+
+  // Los 4 KPIs de arriba no dependen del perfil — mismo ctx.stats que DCMA.
+  const statsRow = document.getElementById('dcma-statsRow');
+  if(ctx.stats){
+    const stats = [
+      ['Tareas totales', ctx.stats.totalTasks], ['Tareas de detalle', ctx.stats.detailTasks],
+      ['Vínculos', ctx.stats.links], ['Críticas (XML)', ctx.stats.critical],
+    ];
+    statsRow.innerHTML = stats.map(([l,v]) => '<div class="dcma-stat-chip"><b>'+v+'</b>'+l+'</div>').join('');
+    statsRow.style.display = '';
+  }
+
+  const container = document.getElementById('dcma-checksContainer');
+  container.innerHTML = ppResult.checks.map((c,i) => {
+    const badge = c.dcmaName ? `<div class="dcma-pp-badge">Equivalente DCMA: ${c.dcmaName}</div>` : '';
+    let toggleHtml = '';
+    if(c.diaToggle){
+      const tipoActual = STATE.ppDiaTipo[c.diaToggle];
+      toggleHtml = `<div class="dcma-day-toggle" onclick="event.stopPropagation()">
+        Umbral (${c.diaLimite}d) en:
+        <button type="button" class="${tipoActual==='habil'?'active':''}" onclick="setPpDiaTipo('${c.diaToggle}','habil')">Días hábiles</button>
+        <button type="button" class="${tipoActual==='corridos'?'active':''}" onclick="setPpDiaTipo('${c.diaToggle}','corridos')">Días corridos</button>
+      </div>`;
+    }
+    return `
+    <div class="dcma-check-row" id="dcma-row-${i}">
+      <div class="dcma-check-head" onclick="toggleDcmaRow(${i})">
+        <div class="dcma-dot dcma-${c.color}"></div>
+        <div class="dcma-c-name">${c.name}<small>${c.value}</small></div>
+        <div class="dcma-c-thresh">${c.threshold}</div>
+        <div class="dcma-c-weight">peso ${c.weight}</div>
+        <div class="dcma-c-pts">${c.points.toFixed(1)}</div>
+        <div class="dcma-caret">▸</div>
+      </div>
+      <div class="dcma-check-detail">
+        <div class="dcma-check-detail-inner">
+          <div class="dcma-check-desc">${c.desc}</div>
+          <div class="dcma-check-standard">${c.standard}</div>
+          ${badge}
+          ${toggleHtml}
+        </div>
+      </div>
+    </div>
+  `;}).join('');
+
+  document.getElementById('dcma-footer').textContent =
+    'Pluspetrol — Anexo 3.1 §8.3 (Bases Técnicas, Cronograma de Obra) · Umbral de aprobación: calificación final ≥ 90%';
+
+  document.getElementById('dcma-empty').style.display='none';
+  document.getElementById('dcma-wrap').style.display='block';
+}
+
+// v3.3.0 — dispatcher: decide DCMA vs PP y muestra/oculta el selector.
+// El selector SOLO se muestra en Modo Diagnóstico (!ctx.historico) — en
+// modo histórico no hay datos crudos para recalcular PP, se fuerza DCMA
+// sin excepción. Reemplaza las llamadas directas a renderDCMA(ctx) en
+// runDCMAGate() y mostrarTabCalidad().
+function renderCalidadActivo(ctx){
+  const toggle = document.getElementById('dcma-method-toggle');
+  const btnDcma = document.getElementById('dcma-method-btn-dcma');
+  const btnPp = document.getElementById('dcma-method-btn-pp');
+  if(toggle) toggle.style.display = ctx.historico ? 'none' : 'flex';
+  if(ctx.historico) STATE.metodoCalidad = 'dcma'; // modo histórico: siempre DCMA, sin excepción
+  if(btnDcma) btnDcma.classList.toggle('active', STATE.metodoCalidad==='dcma');
+  if(btnPp) btnPp.classList.toggle('active', STATE.metodoCalidad==='pp');
+
+  if(STATE.metodoCalidad==='pp' && !ctx.historico){
+    renderPP(ctx);
+  }else{
+    renderDCMA(ctx);
+    document.getElementById('dcma-footer').textContent =
+      'DCMA 11/14 puntos (excluye Missed Tasks, CPLI y BEI — requieren fecha de corte y avance real del Sheet, Etapa 3.1) · Umbrales según estándar DCMA 14-Point Assessment';
+  }
+}
+
+// Llamado desde los botones del selector (#dcma-method-btn-dcma/-pp).
+function setMetodoCalidad(metodo){
+  STATE.metodoCalidad = metodo;
+  const ctx = STATE.dcma || (STATE.dcmaHist && STATE.dcmaHist.ctx);
+  if(ctx) renderCalidadActivo(ctx);
+}
+
 // v3.06 — mapea las filas planas de DataCalidad00 al ctx que espera
 // renderDCMA(). ctx.stats queda null (no se guarda) y offenders siempre []
 // (decisión de diseño — ver handoff_dcma_sheet_design_v1.md). desc/standard/
@@ -8507,7 +8805,7 @@ function buildDcmaXlsx(ctx){
   const verdictoDetalle = dcmaDescFor(ctx);
   const filasCalidad = [
     ['Archivo', lbNombre],
-    ['Fecha Publicación', '— (no publicada — diagnóstico en modo Chequear Plan)'],
+    ['Fecha Publicación', '— (no publicada — diagnóstico en Modo Diagnóstico)'],
     ['Fecha Análisis', ctx.analysisDate || new Date().toISOString()],
     ['Score General', ctx.totalScore],
     ['Veredicto', verdictoNivel],
@@ -8541,6 +8839,51 @@ function buildDcmaXlsx(ctx){
 
   const nombreArchivo = `${dcmaXlsxBaseNombre()}_TestCalidad_${dcmaXlsxFechaHora()}.xlsx`;
   XLSX.writeFile(wb, nombreArchivo);
+}
+
+// v3.3.0 — export XLSX del perfil PP. Mismo formato de bloque vertical +
+// tabla que buildDcmaXlsx(), pero con los 10 checks del pliego. A
+// diferencia de DCMA, acá NO se agrega una hoja por check con offenders —
+// ppComputeChecks() no guarda el detalle de tareas/vínculos ofensores
+// (solo conteos y %, ver diseño de esta sesión), así que no hay detalle
+// para exportar por ahora. Si más adelante hace falta ese detalle también
+// en PP, es un cambio acotado a ppComputeChecks() (agregar offenders a
+// cada check, mismo patrón que las fases DCMA).
+function buildPpXlsx(ctx){
+  const ppResult = ppComputeChecks(ctx);
+  const wb = XLSX.utils.book_new();
+
+  const lbNombre = STATE.project ? STATE.project.name : '';
+  const verdictoNivel = ppVerdictFor(ppResult.totalScore);
+  const verdictoDetalle = ppDescFor();
+  const filasCalidad = [
+    ['Archivo', lbNombre],
+    ['Fecha Publicación', '— (no publicada — diagnóstico en Modo Diagnóstico)'],
+    ['Fecha Análisis', ctx.analysisDate || new Date().toISOString()],
+    ['Perfil', 'Pluspetrol — Anexo 3.1 §8.3'],
+    ['Score General', ppResult.totalScore],
+    ['Veredicto', verdictoNivel],
+    ['Veredicto (detalle)', verdictoDetalle],
+    [],
+    ['Check ID','Check','Valor','Color','Umbral','Peso','Puntos','Equivalente DCMA'],
+    ...ppResult.checks.map(c => [c.id, c.name, c.value, c.color, c.threshold, c.weight, c.points, c.dcmaName || '—']),
+  ];
+  const wsCalidad = XLSX.utils.aoa_to_sheet(filasCalidad);
+  XLSX.utils.book_append_sheet(wb, wsCalidad, 'Calidad PP');
+
+  const nombreArchivo = `${dcmaXlsxBaseNombre()}_TestCalidadPP_${dcmaXlsxFechaHora()}.xlsx`;
+  XLSX.writeFile(wb, nombreArchivo);
+}
+
+// v3.3.0 — dispatcher del botón "Exportar XLSX": exporta según el método
+// activo en pantalla en ese momento (confirmado con Ale).
+function buildCalidadXlsx(){
+  if(!STATE.dcma){
+    openAppModal({titulo:'Sin datos para exportar', cuerpo:'No hay un diagnóstico calculado en este momento.', botones:[{label:'Cerrar', primary:true, action:closeAppModal}]});
+    return;
+  }
+  if(STATE.metodoCalidad==='pp') buildPpXlsx(STATE.dcma);
+  else buildDcmaXlsx(STATE.dcma);
 }
 </script>
 </body>
